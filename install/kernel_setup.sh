@@ -34,7 +34,7 @@ cp $INSTALL_DIR/.config $KERNEL_DIR/linux-5.4.209/.config
 # patch kernel with realtime patch
 cd $KERNEL_DIR/linux-5.4.209
 # TODO could use xz to decrease memory needed? but would be slower
-zcat $TMP_DIR/patch-5.4.209-rt77.patch.gz | patch -p1
+# zcat $TMP_DIR/patch-5.4.209-rt77.patch.gz | patch -p1
 
 # build kernel
 make-kpkg clean
@@ -42,7 +42,7 @@ CONCURRENCY_LEVEL=$NUM_CPUS fakeroot make-kpkg --initrd --append-to-version=-lic
 
 # install kernel
 sudo dpkg --force-confdef --force-confnew -i $KERNEL_DIR/linux-image-5.4.209-licorice-rt77_5.4.209-licorice-rt77-10.00.Custom_amd64.deb
-sudo dpkg --force-confdef --force-confnew -i $KERNEL_DIR/linux-headers-4.4.12-licorice-rt19_5.4.209-licorice-rt77-10.00.Custom_amd64.deb
+sudo dpkg --force-confdef --force-confnew -i $KERNEL_DIR/linux-headers-5.4.209-licorice-rt19_5.4.209-licorice-rt77-10.00.Custom_amd64.deb
 
 # notify reboot when done
 printf "\n\n%s\n" "Kernel installation complete. Please reboot the system."
