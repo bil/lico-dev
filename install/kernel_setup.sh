@@ -1,5 +1,7 @@
 #! /bin/bash
 
+set -ev
+
 # Kernel patch script for Ubuntu xenial-lts server (16.04)
 
 # This is to be executed from the LiCoRICE repository directory
@@ -35,13 +37,13 @@ wget https://git.kernel.org/pub/scm/linux/kernel/git/rt/linux-stable-rt.git/snap
 rm -rf $KERNEL_DIR
 mkdir -p $KERNEL_DIR
 cd $KERNEL_DIR
-tar -zxvf $TMP_DIR/linux-5.4.209.tar.gz
+tar -zxvf $TMP_DIR/linux-stable-rt-5.4.209-rt77.tar.gz
 
 # copy kernel .config file from git
-cp $INSTALL_DIR/.config $KERNEL_DIR/linux-5.4.209/.config
+cp $INSTALL_DIR/.config $KERNEL_DIR/linux-stable-rt-5.4.209-rt77/.config
 
 # build kernel
-cd $KERNEL_DIR/linux-5.4.209
+cd $KERNEL_DIR/linux-stable-rt-5.4.209-rt77
 # TODO revisit
 # https://askubuntu.com/questions/1329538/compiling-the-kernel-5-11-11
 scripts/config --disable SYSTEM_TRUSTED_KEYS
