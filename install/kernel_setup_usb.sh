@@ -42,6 +42,10 @@ tar -zxvf $TMP_DIR/linux-stable-rt-5.4.209-rt77.tar.gz
 # copy kernel .config file from git
 cp $INSTALL_DIR/.config $KERNEL_DIR/linux-stable-rt-5.4.209-rt77/.config
 
+# examine config
+# sudo apt-get install flex bison
+# make menuconfig
+
 # build kernel
 cd $KERNEL_DIR/linux-stable-rt-5.4.209-rt77
 # TODO revisit
