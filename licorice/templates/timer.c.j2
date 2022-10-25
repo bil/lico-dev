@@ -253,7 +253,7 @@ void handle_exit(int exitStatus) {
 void set_sched_prior(int priority) {
   struct sched_param param;
   param.sched_priority = priority;
-  if (pthread_setschedparam(pthread_self(), SCHED_FIFO, &param) == -1) {
+  if (sched_setscheduler(0, SCHED_FIFO, &param) == -1) {
     die("pthread_setschedparam failed.\n");
   }
 }

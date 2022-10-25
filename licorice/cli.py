@@ -180,7 +180,7 @@ def __execute_iterable_output(cmd, **kwargs):
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         universal_newlines=True,
-        shell=True,
+        shell=False,
         bufsize=1,
         **kwargs,
     )
@@ -455,8 +455,8 @@ def __run_model(**kwargs):
     os_env = os.environ.copy()
     os_env["PYTHONPATH"] = get_python_lib()
     if kwargs["rt"]:
-        # TODO look at taskset 0x1 and if sudo is needed
-        run_cmd = "nice -n -20 ./timer"
+        # TODO investigate better way to drop in env vars to sudo
+        run_cmd = f"sudo PYTHONPATH={os_env['PYTHONPATH']} taskset 0x1 nice -n -20 ./timer"
     else:
         run_cmd = "./timer"
     for line in __execute_iterable_output(
