@@ -24,13 +24,12 @@ import numpy as np
 import SharedArray as sa
 {%- endif %}
 
-# import LiCoRICE utils
-from module_utils import create_shared_array
-
 # cimport key Python libraries
-import numpy as np
 cimport numpy as np
 cimport cython
+
+# import LiCoRICE utils
+from module_utils import create_shared_array
 
 {% if is_reader -%}
 # import driver
@@ -350,7 +349,8 @@ while(True):
   inBuf = inBufStrt + {{out_signal_name}}BufVars[2]
   {%- endif %}
 
-  driver.run()
+  # TODO add inBufLen?
+  driver.run(inBuf)
 
   {%- if has_parser %}
     {%- for sig, args in out_signals.items() %}

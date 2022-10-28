@@ -9,21 +9,21 @@ from .source_driver cimport SourceDriver
 
 cdef extern from "<alsa/asoundlib.h>":
   struct _snd_pcm:
-    pass
+  pass
   ctypedef _snd_pcm snd_pcm_t
   struct _snd_pcm_hw_params:
-    pass
+  pass
   ctypedef _snd_pcm_hw_params snd_pcm_hw_params_t
   struct _snd_pcm_sw_params:
-    pass 
-  ctypedef _snd_pcm_sw_params snd_pcm_sw_params_t 
+  pass
+  ctypedef _snd_pcm_sw_params snd_pcm_sw_params_t
   ctypedef unsigned long snd_pcm_uframes_t
   ctypedef long snd_pcm_sframes_t
   void snd_pcm_hw_params_alloca(void *ptr)
   void snd_pcm_sw_params_alloca(void *ptr)
   snd_pcm_sframes_t snd_pcm_bytes_to_frames (snd_pcm_t *pcm, ssize_t bytes)
-  const char * snd_strerror (int errnum)   
-  int snd_pcm_prepare(snd_pcm_t* pcm) 
+  const char * snd_strerror (int errnum)
+  int snd_pcm_prepare(snd_pcm_t* pcm)
   int snd_pcm_recover (snd_pcm_t *pcm, int err, int silent)
 
 # TODO move lineUtilities? or come up with scheme to include utils for drivers
@@ -57,20 +57,23 @@ cdef class LineSourceDriver(SourceDriver):
         snd_pcm_prepare(self.cap_handle)
 
 
-    cdef void run_read(self) except *:
-        # printf("write 1: %lu, %lu %lu\n", pLineOutBufWrite - pLineOutBuf, lineBufferSizeFrames, lineBufferSizeBytes)
+    cdef void run(self, uint8_t *inBuf) except *: #, size_t inBufLen) except *:
+        # printf("write 1: %lu, %lu %lu\n", self..pLineOutBufWrite - self.pLineOutBuf, self.lineBufferSizeFrames, self.lineBufferSizeBytes)
         # fflush(stdout)
-        pcm_ret = pcm_read_buffer(cap_handle, <uint8_t *>bufCurPtr, lineBufferSizeFrames)
+        pcm_ret = pcm_read_buffer(
+          self.cap_handle, inBuf, self.lineBufferSizeFrames
+        )
 
         if (pcm_ret < 0):
-        die("pcm_write_buffer failed.\n")
+          die("pcm_write_buffer failed.\n")
 
         # i = 0
-        # while (i < lineBufferSizeFrames):
-        #   printf("%d ", (<int16_t *>bufCurPtr)[i])
+        # while (i < self.lineBufferSizeFrames):
+        #   printf("%d ", (<int16_t *>inBuf)[i])
         #   i += 1
         # printf("\n")
         # fflush(stdout)
 
+
     cdef void exit_handler(self, int exitStatus) except *:
-        pcm_close(cap_handle, exitStatus)
+        pcm_close(self.cap_handle, exitStatus)

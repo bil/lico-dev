@@ -124,6 +124,7 @@ cdef class LineSinkDriver(SinkDriver):
             sem_post(&self.lineSem)
         self.linePeriodsWritten = 0
 
+
     cdef void exit_handler(self, int exitStatus) except *:
         self.shouldDie = True
         sem_post(&self.lineSem)

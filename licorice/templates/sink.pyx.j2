@@ -23,7 +23,9 @@ import SharedArray as sa
 {%- endif %}
 import time
 
+{% if is_writer -%}
 from .sink_drivers.{{ driver_import }} cimport {{ driver_name }}
+{%- endif %}
 
 # headers for all sinks
 cdef extern from "utilityFunctions.h" nogil:
@@ -70,10 +72,6 @@ cdef extern from "<pthread.h>" nogil:
     int sched_priority
 {%- endif %}
 
-{%- if is_writer %}
-{{ driver_code["imports"] }}
-{%- endif %}
-
 # cdef variables
 cdef pid_t pid, ppid
 cdef sigset_t exitMask
@@ -103,6 +101,7 @@ cdef uint32_t packetSize = {{out_signal_size}} * sizeof({{out_dtype}})
 cdef {{out_dtype}} *outBufStrt
 cdef {{out_dtype}} *outBufEnd
 cdef {{out_dtype}} *outBuf
+cdef size_t outBufLen
 {%- endif %}
 
 {% if async %}
@@ -390,7 +389,7 @@ while(True):
 
     {%- if has_parser %}
 
-  {{parser_code}}
+  driver.run(outBuf, outBufLen)
     {%- endif %}
 
     {%- if has_in_signal %}

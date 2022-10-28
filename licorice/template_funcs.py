@@ -626,13 +626,6 @@ def parse(paths, config, confirmed):
                 out_extension = ".c"
 
             # configure source templating variables
-            in_signal = signals[module_args["in"]["name"]]
-            out_signals = {
-                x: signals[x] for x in (sigkeys & set(module_args["out"]))
-            }
-            out_sig_nums = {
-                x: internal_signals.index(x) for x in list(out_signals)
-            }
             has_parser = "parser" in module_args and module_args["parser"]
             if not has_parser:
                 assert len(out_signals) == 1
@@ -687,12 +680,12 @@ def parse(paths, config, confirmed):
                     out_sig_dependency_info[out_sig],
                     sig_sem_dict[out_sig],
                 )
-
-            driver_template_name = f'{in_signal["args"]["type"]}'
+            driver_template_name = f"{in_sigtype}"
             driver_output_name = f"{name}_{driver_template_name}"
             source_driver_names.append(driver_output_name)
             async_source = name in async_readers_dict.keys()
             async_reader_name = async_readers_dict.get(name)
+
             source_template_kwargs = {
                 "name": name,
                 "driver_import": driver_output_name,
@@ -730,6 +723,7 @@ def parse(paths, config, confirmed):
                 "platform_system": platform_system,
             }
 
+            # open and format parser code
             parser_code = ""
             if has_parser:
                 if module_args["parser"] is True:
@@ -793,7 +787,7 @@ def parse(paths, config, confirmed):
                         **source_template_kwargs
                     )
 
-            source_template_kwargs.update(
+            sink_template_kwargs.update(
                 {
                     "parser_code": parser_code,
                     "construct_code": construct_code,
@@ -1008,6 +1002,7 @@ def parse(paths, config, confirmed):
             async_writer_name = async_writers_dict.get(name)
             sink_driver_names.append(driver_output_name)
             has_in_signal = len(list(in_signals)) == 1
+            sink_driver_names.append(driver_output_name)
             sink_template_kwargs = {
                 "name": name,  # TODO set name properly for async, etc.
                 "driver_import": driver_output_name,
@@ -1149,10 +1144,9 @@ def parse(paths, config, confirmed):
             do_jinja(
                 __find_in_path(paths["templates"], template),
                 os.path.join(paths["output"], name + out_extension),
-                **sink_template_kwargs
                 is_main_process=True,
                 is_writer=(not async_sink),
-                **sink_template_kwargs,
+                **sink_template_kwargs
             )
 
         # parse module
