@@ -1,35 +1,11 @@
-# __DRIVER_CODE__ imports
+from libc.stdio cimport printf
+from libc.stdlib cimport malloc, free, EXIT_SUCCESS, EXIT_FAILURE
+from libc.stdint cimport int8_t, uint8_t, int16_t, uint16_t, int32_t, uint32_t, int64_t, uint64_t
+from posix.signal cimport sigset_t, sigfillset
+from libc.string cimport memcpy
 
-cdef extern from "<sys/types.h>":
-  ctypedef int pthread_t
-  ctypedef struct pthread_mutex_t:
-    pass
-  ctypedef struct pthread_mutexattr_t:
-    pass
-  ctypedef struct pthread_attr_t:
-    pass
+from .source_driver cimport SourceDriver
 
-DEF SIG_BLOCK = 1
-
-cdef extern from "<sched.h>":
-  enum: SCHED_FIFO
-  ctypedef struct cpu_set_t:
-    pass
-  void CPU_ZERO(cpu_set_t *set)
-  void CPU_SET(int cpu, cpu_set_t *set)
-
-cdef extern from "<pthread.h>" nogil:
-  struct sched_param:
-    int sched_priority
-  int pthread_join(pthread_t, void **retValue)
-  int pthread_mutex_init(pthread_mutex_t *, const pthread_mutexattr_t *)
-  int pthread_mutex_lock(pthread_mutex_t *)
-  int pthread_mutex_unlock(pthread_mutex_t *)
-  int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*start_routine)(void*), void *arg)
-  int pthread_setaffinity_np(pthread_t thread, size_t cpusetsize, cpu_set_t *cpuset)
-  int pthread_setschedparam(pthread_t thread, int policy, sched_param *param)
-  void pthread_exit(void *retval)
-  int pthread_sigmask(int how, sigset_t *set, sigset_t *oldset)
 
 cdef extern from "<alsa/asoundlib.h>":
   struct _snd_pcm:
@@ -50,63 +26,51 @@ cdef extern from "<alsa/asoundlib.h>":
   int snd_pcm_prepare(snd_pcm_t* pcm) 
   int snd_pcm_recover (snd_pcm_t *pcm, int err, int silent)
 
+# TODO move lineUtilities? or come up with scheme to include utils for drivers
 cdef extern from "lineUtilities.h" nogil:
   int pcm_init_capture(snd_pcm_t **pHandle, snd_pcm_hw_params_t *hwparams, snd_pcm_sw_params_t *swparams)
   void pcm_close(snd_pcm_t *handle, exitStatus)
   int pcm_read_buffer(snd_pcm_t *handle, uint8_t *ptr, int cptr);
   snd_pcm_sframes_t pcm_get_period_size_bytes()
 
-# __DRIVER_CODE__ variables
+# TODO add parent path to gcc lib or similar: https://stackoverflow.com/questions/15120330/include-parent-directorys-file
+cdef extern from "../utilityFunctions.h":
+  void die(char *errorStr)
 
-LINE_BUFFER_PERIODS = 100
-cdef int NPERIODS = 2
-cdef snd_pcm_t *cap_handle
-cdef snd_pcm_hw_params_t *cap_hwparams
-cdef snd_pcm_sw_params_t *cap_swparams
+DEF SIG_BLOCK = 1
+DEF LINE_BUFFER_PERIODS = 100
 
-cdef int ret
+cdef class LineSourceDriver(SourceDriver):
+    def __init__(self, bufVars):
+        self.NPERIODS = 2
 
-cdef uint8_t *outBuf
-cdef size_t outBufLen
+        # initiliaze line in 
+        snd_pcm_hw_params_alloca(&self.cap_hwparams)
+        snd_pcm_sw_params_alloca(&self.cap_swparams)
+        pcm_init_capture(&self.cap_handle, self.cap_hwparams, self.cap_swparams)
+        self.linePeriodSizeBytes = pcm_get_period_size_bytes()
+        self.linePeriodSizeFrames = snd_pcm_bytes_to_frames(self.cap_handle, self.linePeriodSizeBytes)
+        self.lineBufferSizeBytes = self.linePeriodSizeBytes * self.NPERIODS
+        self.lineBufferSizeFrames = snd_pcm_bytes_to_frames(self.cap_handle, self.lineBufferSizeBytes)
+        # TODO this should be the same as "packetSize"
+        self.lineOutBufSize = LINE_BUFFER_PERIODS * self.lineBufferSizeBytes
+        snd_pcm_prepare(self.cap_handle)
 
-cdef ssize_t linePeriodSizeBytes
-cdef ssize_t lineBufferSizeBytes
-cdef snd_pcm_uframes_t lineBufferSizeFrames
-cdef snd_pcm_uframes_t linePeriodSizeFrames
-cdef ssize_t lineOutBufSize
-cdef long int lineBytesWrapped
+    
+    cdef void run_read(self) except *:
+        # printf("write 1: %lu, %lu %lu\n", pLineOutBufWrite - pLineOutBuf, lineBufferSizeFrames, lineBufferSizeBytes)
+        # fflush(stdout)
+        pcm_ret = pcm_read_buffer(cap_handle, <uint8_t *>bufCurPtr, lineBufferSizeFrames)
 
+        if (pcm_ret < 0):
+        die("pcm_write_buffer failed.\n")
 
-# __DRIVER_CODE__ setup
+        # i = 0
+        # while (i < lineBufferSizeFrames):
+        #   printf("%d ", (<int16_t *>bufCurPtr)[i])
+        #   i += 1
+        # printf("\n")
+        # fflush(stdout)
 
-# initiliaze line in
-snd_pcm_hw_params_alloca(&cap_hwparams)
-snd_pcm_sw_params_alloca(&cap_swparams)
-pcm_init_capture(&cap_handle, cap_hwparams, cap_swparams)
-linePeriodSizeBytes = pcm_get_period_size_bytes()
-linePeriodSizeFrames = snd_pcm_bytes_to_frames(cap_handle, linePeriodSizeBytes)
-lineBufferSizeBytes = linePeriodSizeBytes * NPERIODS
-lineBufferSizeFrames = snd_pcm_bytes_to_frames(cap_handle, lineBufferSizeBytes)
-
-# TODO this should be the same as "packetSize"
-lineOutBufSize = LINE_BUFFER_PERIODS * lineBufferSizeBytes
-snd_pcm_prepare(cap_handle)
-
-# __DRIVER_CODE__ read
-
-  # printf("write 1: %lu, %lu %lu\n", pLineOutBufWrite - pLineOutBuf, lineBufferSizeFrames, lineBufferSizeBytes)
-  # fflush(stdout)
-  pcm_ret = pcm_read_buffer(cap_handle, <uint8_t *>bufCurPtr, lineBufferSizeFrames)
-
-  if (pcm_ret < 0):
-    die("pcm_write_buffer failed.\n")
-
-  # i = 0
-  # while (i < lineBufferSizeFrames):
-  #   printf("%d ", (<int16_t *>bufCurPtr)[i])
-  #   i += 1
-  # printf("\n")
-  # fflush(stdout)
-
-# __DRIVER_CODE__ exit_handler
-  pcm_close(cap_handle, exitStatus)
+    cdef void exit_handler(self, int exitStatus) except *:
+        pcm_close(cap_handle, exitStatus)

@@ -365,7 +365,7 @@ def parse(paths, config, confirmed):
         shutil.copytree(
             template_path,
             paths["output"],
-            ignore=shutil.ignore_patterns(("*.j2")),
+            ignore=shutil.ignore_patterns("*.j2"),
         )
 
     # set up signal helper variables
@@ -445,7 +445,9 @@ def parse(paths, config, confirmed):
     module_names = []  # list of module names
     source_names = []  # list of source names
     async_readers_dict = {}  # dict of source: async_readers
+    source_driver_names = []
     sink_names = []  # list of sink names
+    sink_driver_names = []
     source_outputs = {}
     dependency_graph = {}
     in_signals = {}
@@ -569,6 +571,12 @@ def parse(paths, config, confirmed):
             "to execute this model successfully."
         )
 
+    if len(source_names) == 0:
+        shutil.rmtree(os.path.join(paths["output"], "source_drivers"))
+
+    if len(sink_names) == 0:
+        shutil.rmtree(os.path.join(paths["output"], "sink_drivers"))
+
     # print("system input and output signals")
     print("Inputs: ")
     for sig_name, sig_type in iter(in_signals.items()):
@@ -588,34 +596,38 @@ def parse(paths, config, confirmed):
         if name in source_names:
             print(" - " + name + " (source)")
 
+            # load Python or C source template
             if module_language == "python":
                 template = TEMPLATE_SOURCE_PY
                 in_extension = ".py"
                 out_extension = ".pyx"
             else:
-                raise NotImplementedError()
+                raise NotImplementedError("C sources not implemented.")
                 template = TEMPLATE_SOURCE_C
                 in_extension = ".c"
                 out_extension = ".c"
+
+            # configure source templating variables
+            has_parser = "parser" in module_args and module_args["parser"]
+            if not has_parser:
+                assert len(out_signals) == 1
+
             in_signal = signals[module_args["in"]["name"]]
+            in_dtype = in_signal["schema"]["data"]["dtype"]
+            in_dtype = fix_dtype(in_dtype)
+            in_sigtype = in_signal["args"]["type"]
+            default_params = (
+                in_signal["schema"]["default"]
+                if (in_sigtype == "default")
+                else None
+            )
+
             out_signals = {
                 x: signals[x] for x in (sigkeys & set(module_args["out"]))
             }
             out_sig_nums = {
                 x: internal_signals.index(x) for x in list(out_signals)
             }
-            has_parser = "parser" in module_args and module_args["parser"]
-
-            if not has_parser:
-                assert len(out_signals) == 1
-            default_params = (
-                in_signal["schema"]["default"]
-                if (in_signal["args"]["type"] == "default")
-                else None
-            )
-
-            in_dtype = in_signal["schema"]["data"]["dtype"]
-            in_dtype = fix_dtype(in_dtype)
             out_sig_types = {}
             for sig, args in iter(out_signals.items()):
                 dtype = args["dtype"]
@@ -629,9 +641,11 @@ def parse(paths, config, confirmed):
                     np.array(literal_eval(str(args["shape"])))
                 )
 
+            # open and format parser code
             parser_code = ""
             if has_parser:
                 if module_args["parser"] is True:
+                    # TODO make this configurable
                     module_args["parser"] = name + "_parser"
                 with open(
                     __find_in_path(
@@ -644,6 +658,7 @@ def parse(paths, config, confirmed):
                     parser_code = jinja2.Template(parser_code)
                     parser_code = parser_code.render(unmodified_config)
 
+            # open constructor code
             construct_code = ""
             if "constructor" in module_args and module_args["constructor"]:
                 if module_args["constructor"] is True:
@@ -659,6 +674,7 @@ def parse(paths, config, confirmed):
                     construct_code = jinja2.Template(construct_code)
                     construct_code = construct_code.render(unmodified_config)
 
+            # open and format destructor code
             destruct_code = ""
             if "destructor" in module_args and module_args["destructor"]:
                 if module_args["destructor"] is True:
@@ -675,12 +691,16 @@ def parse(paths, config, confirmed):
                     destruct_code = jinja2.Template(destruct_code)
                     destruct_code = destruct_code.render(unmodified_config)
 
-            driver_template_name = f'{in_signal["args"]["type"]}'
+            driver_template_name = f"{in_sigtype}"
             driver_output_name = f"{name}_{driver_template_name}"
+            source_driver_names.append(driver_output_name)
             async_source = name in async_readers_dict.keys()
             async_reader_name = async_readers_dict.get(name)
+
             source_template_kwargs = {
                 "name": name,
+                "driver_import": driver_output_name,
+                "driver_name": f"{in_signal['args']['type'].capitalize()}SourceDriver",
                 "source_num": source_names.index(name),
                 "config": config,
                 "has_parser": has_parser,
@@ -728,14 +748,6 @@ def parse(paths, config, confirmed):
                 driver_output_path,
                 **source_template_kwargs,
             )
-            with open(driver_output_path, "r") as f:
-                driver_code = f.read()
-            driver_code = {
-                code.partition("\n")[0].strip(): code.partition("\n")[2]
-                for code in filter(
-                    None, driver_code.split("# __DRIVER_CODE__")
-                )
-            }
 
             # parse source async reader if async
             if async_source:
@@ -744,7 +756,6 @@ def parse(paths, config, confirmed):
                     os.path.join(
                         paths["output"], async_reader_name + out_extension
                     ),
-                    driver_code=driver_code,
                     is_main_process=False,
                     is_reader=True,
                     **source_template_kwargs,
@@ -754,7 +765,6 @@ def parse(paths, config, confirmed):
             do_jinja(
                 __find_in_path(paths["templates"], template),
                 os.path.join(paths["output"], name + out_extension),
-                driver_code=(None if async_source else driver_code),
                 is_main_process=True,
                 is_reader=(not async_source),
                 **source_template_kwargs,
@@ -947,8 +957,11 @@ def parse(paths, config, confirmed):
 
             driver_template_name = f'{out_signal["args"]["type"]}'
             driver_output_name = f"{name}_{driver_template_name}"
+            sink_driver_names.append(driver_output_name)
             sink_template_kwargs = {
                 "name": name,
+                "driver_import": driver_output_name,
+                "driver_name": f"{out_signal['args']['type'].capitalize()}SinkDriver",
                 "non_source_num": non_source_names.index(name),
                 "config": config,
                 "has_parser": has_parser,
@@ -977,31 +990,18 @@ def parse(paths, config, confirmed):
 
             # parse sink driver
             driver_template_file = f"{driver_template_name}.pyx.j2"
-            driver_output_path = os.path.join(
-                paths["output"], f"sink_drivers/{driver_output_name}.pyx"
-            )
+            driver_output_file = f"{driver_output_name}.pyx"
             do_jinja(
-                __find_in_path(
-                    paths["templates"], f"sink_drivers/{driver_template_file}"
-                ),
-                driver_output_path,
-                **sink_template_kwargs,
+                __find_in_path(paths["templates"], f"sink_drivers/{driver_template_file}"),
+                os.path.join(paths["output"], f"sink_drivers/{driver_output_file}"),
+                **sink_template_kwargs
             )
 
-            with open(driver_output_path, "r") as f:
-                driver_code = f.read()
-            driver_code = {
-                code.partition("\n")[0].strip(): code.partition("\n")[2]
-                for code in filter(
-                    None, driver_code.split("# __DRIVER_CODE__")
-                )
-            }
-
+            # parse sink template
             do_jinja(
                 __find_in_path(paths["templates"], template),
                 os.path.join(paths["output"], name + out_extension),
-                driver_code=driver_code,
-                **sink_template_kwargs,
+                **sink_template_kwargs
             )
 
         # parse module
@@ -1236,7 +1236,9 @@ def parse(paths, config, confirmed):
         module_names=module_names,
         source_names=source_names,
         async_reader_names=async_reader_names,
+        source_driver_names=source_driver_names,
         sink_names=sink_names,
+        sink_driver_names=sink_driver_names,
         source_types=list(map(lambda x: modules[x]["language"], source_names)),
         extra_incl=extra_incl,
         numpy_incl=np.get_include(),

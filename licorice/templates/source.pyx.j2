@@ -1,3 +1,6 @@
+# declare jinja variables
+{% set test_throughput = ('test_throughput' in config['config'] and config['config']['test_throughput']) %}
+
 # cimport C libraries
 from libc.stdio cimport fprintf, printf, stderr, stdout, fflush
 from libc.stdlib cimport exit, malloc, free, calloc, EXIT_SUCCESS, EXIT_FAILURE
@@ -28,9 +31,10 @@ import numpy as np
 cimport numpy as np
 cimport cython
 
-cdef extern from "<sys/resource.h>":
-  enum: PRIO_PROCESS
-  int setpriority(int which, int who, int prio)
+{% if is_reader -%}
+# import driver
+from .source_drivers.{{ driver_import }} cimport {{ driver_name }}
+{%- endif %}
 
 cdef extern from "<sys/socket.h>":
   ctypedef uint32_t socklen_t
@@ -80,10 +84,6 @@ cdef extern from "<pthread.h>" nogil:
   int pthread_mutex_init(pthread_mutex_t *, const pthread_mutexattr_t *)
   int pthread_mutex_lock(pthread_mutex_t *)
   int pthread_mutex_unlock(pthread_mutex_t *)
-{%- endif %}
-
-{%- if is_reader %}
-{{ driver_code["imports"] }}
 {%- endif %}
 
 # cdef variables
@@ -140,11 +140,6 @@ out_sigs = {}
 out_sig = None
 {%- endif %}
 
-# driver variables
-{%- if is_reader %}
-{{ driver_code["variables"] }}
-{%- endif %}
-
 # function to close the source
 cdef void handle_exit(int exitStatus):
   global pmem, shm_size, udpReadThread, exitMutex, exitRoutine, pSourceUpSem, pSourceDownSem
@@ -171,7 +166,7 @@ cdef void handle_exit(int exitStatus):
   free(bufStrtPtr)
   {%- endif %}
 
-{{ driver_code["exit_handler"] }}
+  driver.exit_handler(exitStatus)
 
 {%- endif %}
 
@@ -279,7 +274,7 @@ sa.mlock(out_sigs["{{sig}}"])
     {%- endif %}
   {%- endfor %}
 
-{{ driver_code["setup"] }}
+driver = {{ driver_name }}(out_sig)
 
 {%- endif %}
 
@@ -327,7 +322,7 @@ while(True):
   bufCurPtr = bufStrtPtr + {{out_signal_name}}BufVars[2]
   {%- endif %}
 
-{{ driver_code["read"] }}
+  driver.run()
 
   {%- if has_parser %}
     {%- for sig, args in out_signals.items() %}
