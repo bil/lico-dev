@@ -16,13 +16,18 @@ NUM_CPUS=`grep processor /proc/cpuinfo|wc -l`
 # update to most recent version of packages, install essentials, do some cleanup
 sudo apt-get update
 sudo apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confnew" upgrade
-sudo apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confnew" install libncurses5-dev build-essential libssl-dev kernel-package dwarves libelf-dev flex
+sudo apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confnew" install libncurses5-dev build-essential libssl-dev kernel-package dwarves libelf-dev flex bison openssl dkms libelf-dev libudev-dev libpci-dev libibverty-dev autoconf fakeroot
 sudo apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confnew" autoremove
 
 # download kernel and rt-patch if not exists
 cd $TMP_DIR
-wget https://git.kernel.org/pub/scm/linux/kernel/git/rt/linux-stable-rt.git/snapshot/linux-stable-rt-5.4.209-rt77.tar.gz
-#wget -N https://kernel.org/pub/linux/kernel/v5.x/linux-5.4.209.tar.gz
+# wget https://git.kernel.org/pub/scm/linux/kernel/git/rt/linux-stable-rt.git/snapshot/linux-stable-rt-5.4.209-rt77.tar.gz
+
+#cd KERNEL DIR
+wget https://mirrors.edge.kernel.org/pub/linux/kernel/v5.x/linux-5.4.221.tar.gz
+wget https://cdn.kernel.org/pub/linux/kernel/projects/rt/5.4/patch-5.4.221-rt79.patch.gz
+zcat ../patch-5.4.221-rt79.patch.gz | patch -p1
+
 #
 # to check signature
 # sudo apt-get install gnupg2
