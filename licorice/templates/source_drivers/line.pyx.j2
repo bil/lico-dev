@@ -44,7 +44,7 @@ cdef class LineSourceDriver(SourceDriver):
     def __init__(self, bufVars):
         self.NPERIODS = 2
 
-        # initiliaze line in 
+        # initiliaze line in
         snd_pcm_hw_params_alloca(&self.cap_hwparams)
         snd_pcm_sw_params_alloca(&self.cap_swparams)
         pcm_init_capture(&self.cap_handle, self.cap_hwparams, self.cap_swparams)
@@ -56,7 +56,7 @@ cdef class LineSourceDriver(SourceDriver):
         self.lineOutBufSize = LINE_BUFFER_PERIODS * self.lineBufferSizeBytes
         snd_pcm_prepare(self.cap_handle)
 
-    
+
     cdef void run_read(self) except *:
         # printf("write 1: %lu, %lu %lu\n", pLineOutBufWrite - pLineOutBuf, lineBufferSizeFrames, lineBufferSizeBytes)
         # fflush(stdout)
