@@ -498,10 +498,10 @@ int main(int argc, char* argv[]) {
 
   // set priority
   set_sched_prior(PRIORITY);
-  //cpu_set_t mask;
-  //CPU_ZERO(&mask);
-  //CPU_SET(1, &mask);
-  //sched_setaffinity(0, sizeof(cpu_set_t), &mask);
+  cpu_set_t mask;
+  CPU_ZERO(&mask);
+  CPU_SET(1, &mask);
+  sched_setaffinity(0, sizeof(cpu_set_t), &mask);
 
 
 {% for name in source_names -%} // TODO write this loop in C
