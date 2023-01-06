@@ -44,7 +44,7 @@ cd linux-5.4.221
 zcat /tmp/patch-5.4.221-rt79.patch.gz | patch -p1
 
 # copy kernel .config file from git
-cp $INSTALL_DIR/.config $KERNEL_DIR/linux-stable-rt-5.4.209-rt77/.config
+cp $INSTALL_DIR/.config $KERNEL_DIR/linux-5.4.221/.config
 # examine config
 # sudo apt-get install flex bison
 # make menuconfig
