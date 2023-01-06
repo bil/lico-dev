@@ -14,10 +14,12 @@ TMP_DIR=/tmp
 NUM_CPUS=`grep processor /proc/cpuinfo|wc -l`
 
 # update to most recent version of packages, install essentials, do some cleanup
-sudo apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confnew" update
-sudo apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confnew" upgrade
-sudo apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confnew" install libncurses5-dev build-essential libssl-dev kernel-package dwarves libelf-dev flex bison openssl dkms libelf-dev libudev-dev libpci-dev libiberty-dev autoconf fakeroot
-sudo apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confnew" autoremove
+export DEBIAN_FRONTEND=noninteractive
+export DEBIAN_PRIORITY=critical
+sudo -E apt-get -y update
+sudo -E apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confnew" upgrade
+sudo -E apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confnew" install libncurses5-dev build-essential libssl-dev kernel-package dwarves libelf-dev flex bison openssl dkms libelf-dev libudev-dev libpci-dev libiberty-dev autoconf fakeroot
+sudo apt-get -y autoremove
 
 # download kernel and rt-patch if not exists
 cd $TMP_DIR
