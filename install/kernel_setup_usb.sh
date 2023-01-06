@@ -14,7 +14,7 @@ TMP_DIR=/tmp
 NUM_CPUS=`grep processor /proc/cpuinfo|wc -l`
 
 # update to most recent version of packages, install essentials, do some cleanup
-sudo apt-get update
+sudo apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confnew" update
 sudo apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confnew" upgrade
 sudo apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confnew" install libncurses5-dev build-essential libssl-dev kernel-package dwarves libelf-dev flex bison openssl dkms libelf-dev libudev-dev libpci-dev libiberty-dev autoconf fakeroot
 sudo apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confnew" autoremove
