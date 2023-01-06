@@ -50,7 +50,7 @@ cp $INSTALL_DIR/.config $KERNEL_DIR/linux-stable-rt-5.4.209-rt77/.config
 # make menuconfig
 
 # build kernel
-cd $KERNEL_DIR/linux-stable-rt-5.4.209-rt77
+cd $KERNEL_DIR/linux-5.4.221
 # TODO revisit
 # https://askubuntu.com/questions/1329538/compiling-the-kernel-5-11-11
 scripts/config --disable SYSTEM_TRUSTED_KEYS
