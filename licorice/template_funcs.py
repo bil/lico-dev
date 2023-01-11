@@ -1,3 +1,4 @@
+import copy
 import os
 import platform
 import shutil
@@ -332,6 +333,8 @@ def generate(paths, config, confirmed):
 
 def parse(paths, config, confirmed):
     print("Parsing")
+
+    config = copy.deepcopy(config)
 
     platform_system = platform.system()
 
@@ -1004,6 +1007,7 @@ def parse(paths, config, confirmed):
             async_sink = name in async_writers_dict.keys()
             async_writer_name = async_writers_dict.get(name)
             sink_driver_names.append(driver_output_name)
+            has_in_signal = len(list(in_signals)) == 1
             sink_template_kwargs = {
                 "name": name,  # TODO set name properly for async, etc.
                 "driver_import": driver_output_name,
@@ -1019,9 +1023,14 @@ def parse(paths, config, confirmed):
                     else None
                 ),
                 "in_signals": in_signals,
-                "in_signal_name": None if has_parser else list(in_signals)[0],
+                "has_in_signal": has_in_signal,
+                "in_signal_name": (
+                    list(in_signals)[0] if has_in_signal else None
+                ),
                 "in_signal_type": (
-                    None if (has_parser) else in_sig_types[list(in_signals)[0]]
+                    in_sig_types[list(in_signals)[0]]
+                    if has_in_signal
+                    else None
                 ),
                 "msgpack_sigs": msgpack_sigs,
                 "raw_vec_sigs": raw_vec_sigs,
@@ -1042,9 +1051,9 @@ def parse(paths, config, confirmed):
                 "history_pad_length": HISTORY_DEFAULT,
                 "platform_system": platform_system,
                 # TODO add clear documentation on how to set this
-                "async_buf_len": min(
-                    [x["history"] for x in in_signals.values()]
-                ),
+                "async_buf_len": None
+                if (not async_sink)
+                else min([x["history"] for x in in_signals.values()]),
             }
 
             parser_code = ""
