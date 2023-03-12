@@ -1,0 +1,13 @@
+# python setup.py install
+from distutils.core import setup
+from Cython.Build import cythonize
+
+setup(ext_modules=cythonize(
+    [
+{% for name in source_driver_names  -%}
+        "{{name}}.pyx",
+        "{{name}}.pyx"
+{%- endfor %}
+    ],
+    language_level=3,
+))

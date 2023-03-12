@@ -24,7 +24,8 @@ import SharedArray as sa
 import time
 
 {% if is_writer -%}
-from .sink_drivers.{{ driver_import }} cimport {{ driver_name }}
+#cimport pygame_demo_vis_pygame
+#import pygame_demo_vis_pygame
 {%- endif %}
 
 # headers for all sinks
@@ -285,7 +286,8 @@ in_sig = in_sigs["{{sig}}"]
   {% endfor %}
 {%- endif %}
 
-driver = {{ driver_name }}()
+driver = None
+#driver = pygame_demo_vis_pygame.{{ driver_name }}()
 
 {%- endif %}
 

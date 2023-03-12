@@ -30,7 +30,7 @@ void init_utils(void (*pHandleExit)(int errorStr), sigset_t *pExitMask) {
 }
 
 /*
- * finish necessary real-time setup before process execution begins
+ * finish necessary realtime setup before process execution begins
  */
 void make_realtime() {
   // lock stack mem
@@ -88,8 +88,6 @@ void set_sighandler(int signum, void *psh, sigset_t *block_mask) {
 void open_shared_mem(uint8_t **ppmem, const char *pName, size_t numBytes, int shm_flags, int mmap_flags) {
   int fd = shm_open(pName, shm_flags, 0666);
   if(fd == -1) {
-    printf("%s\n", strerror(errno));
-    fflush(stdout);
     die("shm_open failed.\n");
   }
   // check if O_CREAT (1 << 6) is set 
@@ -103,6 +101,8 @@ void open_shared_mem(uint8_t **ppmem, const char *pName, size_t numBytes, int sh
     die("mmap failed\n");
   }
   close(fd);
+
+  // TODO memset necessary to zero out buffer?
 }
 
 sem_t *create_semaphore(const char *pName, int value) {

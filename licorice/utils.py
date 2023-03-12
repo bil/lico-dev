@@ -27,6 +27,7 @@ def __find_in_path(path_list, files, raise_error=True):
     else:
         return None
 
+
 # recursively update dict, overwriting conflicts with update
 def __dict_deep_update(orig_dict, update_dict):
     for k, v in orig_dict.items():
@@ -35,3 +36,8 @@ def __dict_deep_update(orig_dict, update_dict):
         elif isinstance(v, dict):
             __dict_deep_update(v, update_dict[k])
     return update_dict
+
+
+# convert snake_case to UpperCamelCase
+def to_upper_camelcase(x):
+    return "".join(y.title() for y in x.split("_"))

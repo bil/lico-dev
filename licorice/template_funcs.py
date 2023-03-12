@@ -15,7 +15,11 @@ import numpy as np
 import psutil
 from toposort import toposort
 
-from licorice.utils import __find_in_path, __handle_completed_process
+from licorice.utils import (
+    __find_in_path,
+    __handle_completed_process,
+    to_upper_camelcase,
+)
 
 # available path constants
 # paths['templates']
@@ -689,7 +693,7 @@ def parse(paths, config, confirmed):
             source_template_kwargs = {
                 "name": name,
                 "driver_import": driver_output_name,
-                "driver_name": f"{in_signal['args']['type'].capitalize()}SourceDriver",
+                "driver_name": f"{to_upper_camelcase(in_signal['args']['type'])}SourceDriver",
                 "source_num": source_names.index(name),
                 "config": config,
                 "has_parser": has_parser,
@@ -787,7 +791,7 @@ def parse(paths, config, confirmed):
                         **source_template_kwargs
                     )
 
-            sink_template_kwargs.update(
+            source_template_kwargs.update(
                 {
                     "parser_code": parser_code,
                     "construct_code": construct_code,
@@ -798,7 +802,19 @@ def parse(paths, config, confirmed):
             # parse source driver
             driver_template_file = f"{driver_template_name}.pyx.j2"
             driver_output_path = os.path.join(
-                paths["output"], f"source_drivers/{driver_output_name}.pyx"
+                paths["output"], f"{driver_output_name}.pyx"
+            )
+            do_jinja(
+                __find_in_path(
+                    paths["templates"],
+                    f"source_drivers/{driver_template_file}",
+                ),
+                driver_output_path,
+                **source_template_kwargs,
+            )
+            driver_template_file = f"{driver_template_name}.pxd.j2"
+            driver_output_path = os.path.join(
+                paths["output"], f"{driver_output_name}.pxd"
             )
             do_jinja(
                 __find_in_path(
@@ -1006,7 +1022,7 @@ def parse(paths, config, confirmed):
             sink_template_kwargs = {
                 "name": name,  # TODO set name properly for async, etc.
                 "driver_import": driver_output_name,
-                "driver_name": f"{out_signal['args']['type'].capitalize()}SinkDriver",
+                "driver_name": f"{to_upper_camelcase(out_signal['args']['type'])}SinkDriver",
                 "non_source_num": non_source_names.index(name),
                 "config": config,
                 "has_parser": has_parser,
@@ -1123,9 +1139,20 @@ def parse(paths, config, confirmed):
             driver_template_file = f"{driver_template_name}.pyx.j2"
             driver_output_file = f"{driver_output_name}.pyx"
             do_jinja(
-                __find_in_path(paths["templates"], f"sink_drivers/{driver_template_file}"),
-                os.path.join(paths["output"], f"sink_drivers/{driver_output_file}"),
-                **sink_template_kwargs
+                __find_in_path(
+                    paths["templates"], f"sink_drivers/{driver_template_file}"
+                ),
+                os.path.join(paths["output"], f"{driver_output_file}"),
+                **sink_template_kwargs,
+            )
+            driver_template_file = f"{driver_template_name}.pxd.j2"
+            driver_output_file = f"{driver_output_name}.pxd"
+            do_jinja(
+                __find_in_path(
+                    paths["templates"], f"sink_drivers/{driver_template_file}"
+                ),
+                os.path.join(paths["output"], f"{driver_output_file}"),
+                **sink_template_kwargs,
             )
 
             # parse sink async writer if async
@@ -1146,7 +1173,7 @@ def parse(paths, config, confirmed):
                 os.path.join(paths["output"], name + out_extension),
                 is_main_process=True,
                 is_writer=(not async_sink),
-                **sink_template_kwargs
+                **sink_template_kwargs,
             )
 
         # parse module
@@ -1470,6 +1497,17 @@ def parse(paths, config, confirmed):
         buf_vars_len=BUF_VARS_LEN,
         history_pad_length=HISTORY_DEFAULT,
     )
+
+    # parse driver setup file
+    if len(source_driver_names) + len(sink_driver_names) > 0:
+        do_jinja(
+            __find_in_path(
+                paths["templates"],
+                "setup_drivers.py.j2",
+            ),
+            os.path.join(paths["output"], "setup_drivers.py"),
+            driver_names=source_driver_names + sink_driver_names,
+        )
 
 
 def export(paths, confirmed):

@@ -8,7 +8,7 @@ LDFLAGS = -levent -pthread -lsqlite3 {{extra_incl}}
 LDTESTFLAGS = -lsqlite3 -pthread
 CYLDFLAGS = {{py_lib}} -lsqlite3 {% if line %}-lasound{% endif %} {{py_link_flags}} {{extra_incl}} # -lpthread -lm -lutil -ldl should be included in py_link_flags
 
-all: timer {% for so in source_names %}{{so}} {% endfor %}{% for ar in async_reader_names %}{{ar}} {% endfor %}{% for sd in source_driver_names %}{{sd}} {% endfor %}{% for si in sink_names %}{{si}} {% endfor %}{% for aw in async_writer_names %}{{aw}} {% endfor %}{% for sd in sink_driver_names %}{{sd}} {% endfor %}{% for c in module_names %}{{c}} {% endfor %}
+all: timer {% for so in source_names %}{{so}} {% endfor %}{% for ar in async_reader_names %}{{ar}} {% endfor %}{% for sd in source_driver_names %}{{sd}} {% endfor %}{% for si in sink_names %}{{si}} {% endfor %}{% for aw in async_writer_names %}{{aw}} {% endfor %}{% for sd in sink_driver_names %}{{sd}} {% endfor %} {% for c in module_names %}{{c}} {% endfor %}drivers
 
 timer: timer.c utilityFunctions.c {% if darwin %}darwin_compat/clock_nanosleep.c{% endif %}
 	$(CC) $(CFLAGS) timer.c utilityFunctions.c {% if darwin %}darwin_compat/clock_nanosleep.c{% endif %} -o timer $(LDFLAGS)
@@ -37,9 +37,15 @@ timer: timer.c utilityFunctions.c {% if darwin %}darwin_compat/clock_nanosleep.c
 {% endfor -%}
 
 {%- for source_driver in source_driver_names %}
-{{source_driver}}: source_drivers/{{source_driver}}.pyx sourceUtils.c utilityFunctions.c {% if line %}lineUtilities.c{% endif %}
-	cython --embed -3 -o source_drivers/{{source_driver}}.c source_drivers/{{source_driver}}.pyx
-	$(CC) $(CYFLAGS) -Wno-cpp source_drivers/{{source_driver}}.c sourceUtils.c utilityFunctions.c {% if line %}lineUtilities.c{% endif %} -o source_drivers/{{source_driver}} $(CYLDFLAGS)
+{{source_driver}}: {{source_driver}}.pyx sourceUtils.c utilityFunctions.c {% if line %}lineUtilities.c{% endif %}
+	cython --embed -3 -o {{source_driver}}.c {{source_driver}}.pyx
+	$(CC) $(CYFLAGS) -Wno-cpp {{source_driver}}.c sourceUtils.c utilityFunctions.c {% if line %}lineUtilities.c{% endif %} -o {{source_driver}} $(CYLDFLAGS)
+{% endfor -%}
+
+{%- for sink_driver in sink_driver_names %}
+#{{sink_driver}}: {{sink_driver}}.pyx sqlite3async.c sqlHelpers.c {% if line %}lineUtilities.c{% endif %}
+#	cython --embed -3 -o {{sink_driver}}.c {{sink_driver}}.pyx
+#	$(CC) $(CYFLAGS) -Wno-cpp {{sink_driver}}.c utilityFunctions.c sqlite3async.c sqlHelpers.c {% if line %}lineUtilities.c{% endif %} -o {{sink_driver}} $(CYLDFLAGS)
 {% endfor -%}
 
 {%- for sink in sink_names %}
@@ -60,11 +66,8 @@ timer: timer.c utilityFunctions.c {% if darwin %}darwin_compat/clock_nanosleep.c
 	$(CC) $(CYFLAGS) -Wno-cpp {{async_writer}}.c utilityFunctions.c sqlite3async.c sqlHelpers.c {% if line %}lineUtilities.c{% endif %} -o {{async_writer}} $(CYLDFLAGS)
 {% endfor -%}
 
-{%- for sink_driver in sink_driver_names %}
-{{sink_driver}}: sink_drivers/{{sink_driver}}.pyx sqlite3async.c sqlHelpers.c {% if line %}lineUtilities.c{% endif %}
-	cython --embed -3 -o sink_drivers/{{sink_driver}}.c sink_drivers/{{sink_driver}}.pyx
-	$(CC) $(CYFLAGS) -Wno-cpp sink_drivers/{{sink_driver}}.c utilityFunctions.c sqlite3async.c sqlHelpers.c {% if line %}lineUtilities.c{% endif %} -o sink_drivers/{{sink_driver}} $(CYLDFLAGS)
-{% endfor -%}
+#drivers:
+#	python setup_drivers.py install
 
 {%- for child in module_names %}
 {{child}}: {{child}}.pyx utilityFunctions.c #networkUtilities.c

@@ -1,26 +1,62 @@
-from libc.stdio cimport printf, stdout, fflush, remove
-from libc.stdio cimport printf, snprintf, stdout, fflush, remove
-from libc.stdlib cimport exit, malloc, free, EXIT_SUCCESS, EXIT_FAILURE
-from libc.stdint cimport int8_t, uint8_t, int16_t, uint16_t, int32_t, uint32_t, int64_t, uint64_t
-from libc.signal cimport SIGINT, SIGUSR1, SIGALRM, SIGBUS, SIGSEGV, SIGQUIT, SIGUSR2
-from posix.signal cimport kill, sigaction, sigaction_t, sigset_t, sigemptyset, sigaddset, sigfillset
-from posix.unistd cimport getppid, pause, close, getpid, write
-from posix.mman cimport shm_open, shm_unlink, mmap, munmap, PROT_READ, PROT_WRITE, MAP_SHARED, mlockall, MCL_CURRENT, MCL_FUTURE, munlockall
-from posix.fcntl cimport O_RDWR, O_WRONLY, O_CREAT, O_TRUNC, open
+# cimport C libraries
+from posix.fcntl cimport O_CREAT, O_RDWR, O_TRUNC, O_WRONLY, open
+from posix.mman cimport (
+    MAP_SHARED,
+    MCL_CURRENT,
+    MCL_FUTURE,
+    PROT_READ,
+    PROT_WRITE,
+    mlockall,
+    mmap,
+    munlockall,
+    munmap,
+    shm_open,
+    shm_unlink,
+)
+from posix.signal cimport (
+    kill,
+    sigaction,
+    sigaction_t,
+    sigaddset,
+    sigemptyset,
+    sigfillset,
+    sigset_t,
+)
+from posix.time cimport CLOCK_MONOTONIC_RAW, clock_gettime, timespec
 from posix.types cimport pid_t
-from libc.errno cimport errno, EINTR, EPIPE
-from libc.string cimport memset, strcpy, strcat, strlen, memcpy
-from posix.time cimport clock_gettime, CLOCK_MONOTONIC_RAW, timespec
+from posix.unistd cimport close, getpid, getppid, pause, write
+
+cimport cython
+cimport numpy as np
+from libc.errno cimport EINTR, EPIPE, errno
+from libc.signal cimport SIGALRM, SIGBUS, SIGINT, SIGQUIT, SIGSEGV, SIGUSR1, SIGUSR2
+from libc.stdint cimport (
+    int8_t,
+    int16_t,
+    int32_t,
+    int64_t,
+    uint8_t,
+    uint16_t,
+    uint32_t,
+    uint64_t,
+)
+from libc.stdio cimport fflush, printf, remove, snprintf, stdout
+from libc.stdlib cimport EXIT_FAILURE, EXIT_SUCCESS, exit, free, malloc
+from libc.string cimport memcpy, memset, strcat, strcpy, strlen
+
 DEF SIG_BLOCK = 1
 
-import SharedArray as sa
-import numpy as np
-cimport numpy as np
-cimport cython
+# import Python libraries
+
 import time
 
+import numpy as np
+import SharedArray as sa
 
+#cimport pygame_demo_vis_pygame
+#import pygame_demo_vis_pygame
 
+# headers for all sinks
 cdef extern from "utilityFunctions.h" nogil:
   enum: __GNU_SOURCE
   void die(char *errorStr)
@@ -56,16 +92,15 @@ cdef extern from "constants.h":
   enum: SHM_SIZE
   enum: NUM_TICKS_OFFSET
   enum: BUF_VARS_OFFSET
+  enum: ASYNC_WRITER_MUTEXES_OFFSET
   enum: SEM_NAME_LEN
 
-cdef pid_t ppid
+# cdef variables
+cdef pid_t pid, ppid
 cdef sigset_t exitMask
 cdef char pathName[MAX_PATH_LEN]
-#cdef struct timespec tickTimer
 
-cdef int sigalrm_recv = 0
-
-cdef size_t shm_size
+cdef size_t shmSize
 cdef uint8_t *pmem
 cdef int64_t *pNumTicks
 cdef sem_t *pTickUpSem
@@ -73,37 +108,43 @@ cdef sem_t *pTickDownSem
 cdef sem_t *pSigSems[NUM_SEM_SIGS]
 cdef char semNameBuf[SEM_NAME_LEN]
 cdef uint32_t *pBufVars
+
+cdef uint32_t packetSize = 1 * sizeof(uint8_t)
+cdef uint8_t *outBufStrt
+cdef uint8_t *outBufEnd
 cdef uint8_t *outBuf
 cdef size_t outBufLen
-lastVal = 1
 
+
+
+# python variables
+lastVal = 1
 in_sigs = {}
 
 cdef void handle_exit(int exitStatus):
-  global retVal, tid, radio, context, s, shm_size, pmem, pTickUpSem, pTickDownSem, pSigSems
+  global retVal, tid, radio, context, s, shmSize, pmem, pTickUpSem, pTickDownSem, pSigSems
 
   pygame.quit()
   
 
   driver.exit_handler(exitStatus)
 
-  munmap(pmem, shm_size)
+  munmap(pmem, shmSize)
   munlockall()
 
-  sem_close
-
   if (sem_close(pTickUpSem) == -1):
-    printf("Could not close source up semaphore. \n")
+    printf("Could not close sink up semaphore. \n")
   if (sem_close(pTickDownSem) == -1):
-    printf("Could not close source down semaphore. \n")
+    printf("Could not close sink down semaphore. \n")
 
+  shm_unlink("/async_mem_pygame_demo")
   exit(exitStatus)
 
 cdef void int_handler(int signum):
   pass
 
 cdef void exit_handler(int signum):
-  printf("EXIT HANDLER for pygame_demo\n")
+  global shouldExit
   handle_exit(0)
 
 cdef void bus_handler(int signum):
@@ -122,7 +163,7 @@ sigemptyset(&exitMask)
 sigaddset(&exitMask, SIGALRM)
 init_utils(&handle_exit, &exitMask)
 
-cdef int pid = getpid()
+pid = getpid()
 ppid = getppid()
 
 set_sighandler(SIGINT, &int_handler, &exitMask)
@@ -131,18 +172,25 @@ set_sighandler(SIGBUS, &bus_handler, &exitMask)
 set_sighandler(SIGSEGV, &segv_handler, &exitMask)
 set_sighandler(SIGUSR2, &usr2_handler, NULL)
 
-# open and map shared parent memory
-
-shm_size = ROUND_UP(SHM_SIZE, PAGESIZE)
-open_shared_mem(&pmem, SMEM0_PATHNAME, shm_size, O_RDWR, PROT_READ | PROT_WRITE)
+# open and map shared memory
+shmSize = ROUND_UP(SHM_SIZE, PAGESIZE)
+open_shared_mem(&pmem, SMEM0_PATHNAME, shmSize, O_RDWR, PROT_READ | PROT_WRITE)
 pNumTicks = <int64_t *>(pmem + NUM_TICKS_OFFSET)
 pBufVars = <uint32_t *>(pmem + BUF_VARS_OFFSET)
-
 pTickUpSem = sem_open("/tick_up_sem_0", 0)
 pTickDownSem = sem_open("/tick_down_sem_0", 0)
+
+
   
 
-driver = Vis_pygameSinkDriver()
+driver = None
+#driver = pygame_demo_vis_pygame.VisPygameSinkDriver()
+
+
+outBufStrt = <uint8_t *>malloc(packetSize)
+outBuf = outBufStrt
+outBufEnd = outBufStrt + packetSize
+
 
 
 import math
@@ -219,25 +267,14 @@ kill(ppid,SIGUSR1)
 
 while(True):
   sem_wait(pTickUpSem)
+  
 
+  # synchronous parser logic
 
+  # perform parsing for each packet
+    
 
-  if not pNumTicks[0] % refresh_rate:
-  
-      theta += math.pi / 64
-  
-      pos = (
-          r * math.cos(theta) + offset[0],
-          r * math.sin(2 * theta) + offset[1],
-      )
-      cir1.set_pos(pos)
-  
-      screen.fill(black)
-      sprites.draw(screen)
-      pygame.display.flip()
-  
-  
   driver.run(outBuf, outBufLen)
 
+  
   sem_post(pTickDownSem)
-  sigalrm_recv -= 1
