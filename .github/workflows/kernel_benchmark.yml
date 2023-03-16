@@ -11,5 +11,9 @@ jobs:
         with:
           python-version: '3.8.12'
       - run: ls
-      - run: pip install -r install/requirements-dev.txt
+      - run: ls install
+      - run: cat install/requirements.txt
+      - run: pushd licorice
+      - run: pip install -r requirements-dev.txt
+      - run: popd
       - run: pytest tests/test_examples::jitter_test
