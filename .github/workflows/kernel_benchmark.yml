@@ -10,10 +10,7 @@ jobs:
       - uses: actions/setup-python@v3
         with:
           python-version: '3.8.12'
-      - run: ls
-      - run: ls install
-      - run: cat install/requirements.txt
-      - run: pushd licorice
+      - run: pushd install
       - run: pip install -r requirements-dev.txt
       - run: popd
       - run: pytest tests/test_examples::jitter_test
