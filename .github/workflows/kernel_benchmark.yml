@@ -3,22 +3,22 @@ name: Kernel Benchmark
 on: [push]
 jobs:
   benchmark-kernel:
-    runs-on: self-hosted
-    # runs-on: ubuntu-latest
+    # runs-on: self-hosted
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - run: export APT_CACHE_DIR=`pwd`/apt-cache && mkdir -pv $APT_CACHE_DIR
-      - run: sudo apt-get update -y
-      - run: sudo apt-get install -o dir::cache::archives="$APT_CACHE_DIR" -y libopenblas-base libopenblas-dev sqlite3  libsqlite3-dev libmsgpack-dev libevent-dev gfortran netcat libasound2-dev
-      - run: pip install --upgrade pip
-      - run: pip install virtualenv
-      - run: virtualenv venv
-      - run: source venv/bin/activate
-      - run: pip install setuptools
-      - run: cd install && pip install -r requirements-dev.txt
-      - run: which python3-config
-      # - name: Setup upterm session
-      #   uses: lhotari/action-upterm@v1
-      - run: pytest tests/test_examples.py::test_jitter
-      - run: cat tests/jitter_results.csv
-      # - run: echo "Results: ..."
+      - name: Setup upterm session
+        uses: lhotari/action-upterm@v1
+      # - run: export APT_CACHE_DIR=`pwd`/apt-cache && mkdir -pv $APT_CACHE_DIR
+      # - run: sudo apt-get update -y
+      # - run: sudo apt-get install -o dir::cache::archives="$APT_CACHE_DIR" -y libopenblas-base libopenblas-dev sqlite3  libsqlite3-dev libmsgpack-dev libevent-dev gfortran netcat libasound2-dev
+      # - run: pip install --upgrade pip
+      # - run: pip install virtualenv
+      # - run: virtualenv venv
+      # - run: source venv/bin/activate
+      # - run: pip install setuptools
+      # - run: cd install && pip install -r requirements-dev.txt
+      # - run: which python3-config
+      # - run: pytest tests/test_examples.py::test_jitter
+      # - run: cat tests/jitter_results.csv
+      # # - run: echo "Results: ..."
