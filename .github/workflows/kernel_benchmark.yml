@@ -11,10 +11,10 @@ jobs:
         with:
           python-version: '3.8.12'
 
-      - run: pushd install
+      - run: cd install
       - run: ls
       - run: pip install -r requirements-dev.txt
       - run: popd
       - run: pytest tests/test_examples::jitter_test
       - run: cat tests/jitter_results.csv
-      - run: echo "Results: ..."
+      # - run: echo "Results: ..."
