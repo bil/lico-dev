@@ -8,8 +8,8 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - run: export APT_CACHE_DIR=`pwd`/apt-cache && mkdir -pv $APT_CACHE_DIR
-      - run: apt-get update -y
-      - run: apt-get install -o dir::cache::archives="$APT_CACHE_DIR" -y libopenblas-base libopenblas-dev sqlite3  libsqlite3-dev libmsgpack-dev libevent-dev gfortran netcat libasound2-dev
+      - run: sudo apt-get update -y
+      - run: sudo apt-get install -o dir::cache::archives="$APT_CACHE_DIR" -y libopenblas-base libopenblas-dev sqlite3  libsqlite3-dev libmsgpack-dev libevent-dev gfortran netcat libasound2-dev
       - run: pip install --upgrade pip
       - run: pip install virtualenv
       - run: virtualenv venv
