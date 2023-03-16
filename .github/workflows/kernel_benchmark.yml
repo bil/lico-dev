@@ -12,6 +12,11 @@ jobs:
           python-version: '3.8.12'
 
       - run: cd install && pip install -r requirements-dev.txt
+      - run: pip install --upgrade pip
+      - run: pip install virtualenv
+      - run: virtualenv venv
+      - run: source venv/bin/activate
+      - run: pip install setuptools
       - run: pytest tests/test_examples.py::test_jitter
       - run: cat tests/jitter_results.csv
       # - run: echo "Results: ..."
