@@ -1,6 +1,7 @@
 # __DRIVER_CODE__ imports
-import SharedArray as sa
 import time
+
+import SharedArray as sa
 
 # __DRIVER_CODE__ variables
 

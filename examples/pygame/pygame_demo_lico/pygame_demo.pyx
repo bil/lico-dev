@@ -1,27 +1,58 @@
 # cimport C libraries
+from posix.fcntl cimport O_CREAT, O_RDWR, O_TRUNC, O_WRONLY, open
+from posix.mman cimport (
+    MAP_SHARED,
+    MCL_CURRENT,
+    MCL_FUTURE,
+    PROT_READ,
+    PROT_WRITE,
+    mlockall,
+    munlockall,
+    munmap,
+    shm_unlink,
+)
+from posix.signal cimport (
+    kill,
+    sigaction,
+    sigaction_t,
+    sigaddset,
+    sigemptyset,
+    sigfillset,
+    sigset_t,
+)
+from posix.time cimport clock_gettime, timespec
+from posix.types cimport pid_t
+from posix.unistd cimport close, getpid, getppid, pause, write
+
 cimport cython
 cimport numpy as np
-from libc.stdio cimport printf, stdout, fflush, remove
-from libc.stdio cimport printf, snprintf, stdout, fflush, remove
-from libc.stdlib cimport exit, malloc, free, EXIT_SUCCESS, EXIT_FAILURE
-from libc.stdint cimport int8_t, uint8_t, int16_t, uint16_t, int32_t, uint32_t, int64_t, uint64_t
-from libc.signal cimport SIGINT, SIGUSR1, SIGALRM, SIGBUS, SIGSEGV, SIGQUIT, SIGUSR2
-from posix.signal cimport kill, sigaction, sigaction_t, sigset_t, sigemptyset, sigaddset, sigfillset
-from posix.unistd cimport getppid, pause, close, getpid, write
-from posix.mman cimport munmap, PROT_READ, PROT_WRITE, MAP_SHARED, mlockall, MCL_CURRENT, MCL_FUTURE, munlockall, shm_unlink
-from posix.fcntl cimport O_RDWR, O_WRONLY, O_CREAT, O_TRUNC, open
-from posix.types cimport pid_t
-from libc.errno cimport errno, EINTR, EPIPE
-from libc.string cimport memset, strcpy, strcat, strlen, memcpy
-from posix.time cimport clock_gettime, timespec
+from libc.errno cimport EINTR, EPIPE, errno
+from libc.signal cimport SIGALRM, SIGBUS, SIGINT, SIGQUIT, SIGSEGV, SIGUSR1, SIGUSR2
+from libc.stdint cimport (
+    int8_t,
+    int16_t,
+    int32_t,
+    int64_t,
+    uint8_t,
+    uint16_t,
+    uint32_t,
+    uint64_t,
+)
+from libc.stdio cimport fflush, printf, remove, snprintf, stdout
+from libc.stdlib cimport EXIT_FAILURE, EXIT_SUCCESS, exit, free, malloc
+from libc.string cimport memcpy, memset, strcat, strcpy, strlen
 
 # import Python libraries
-import numpy as np
-import SharedArray as sa
+
 import time
 
+import numpy as np
+import SharedArray as sa
+
 cimport sink_drivers.vis_pygame.vis_pygame as vis_pygame
+
 import sink_drivers.vis_pygame.vis_pygame as vis_pygame
+
 
 # headers for all sinks
 cdef extern from "utilityFunctions.h" nogil:

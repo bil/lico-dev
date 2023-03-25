@@ -1152,7 +1152,7 @@ def parse(paths, config, confirmed):
             do_jinja(
                 __find_in_path(
                     paths["templates"],
-                    f"{driver_folder}/{driver_template_file}"
+                    f"{driver_folder}/{driver_template_file}",
                 ),
                 os.path.join(
                     paths["output"], f"{driver_folder}/{driver_output_file}"
@@ -1164,7 +1164,7 @@ def parse(paths, config, confirmed):
             do_jinja(
                 __find_in_path(
                     paths["templates"],
-                    f"{driver_folder}/{driver_template_file}"
+                    f"{driver_folder}/{driver_template_file}",
                 ),
                 os.path.join(
                     paths["output"], f"{driver_folder}/{driver_output_file}"
