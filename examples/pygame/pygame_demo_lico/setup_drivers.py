@@ -1,11 +1,12 @@
-# python setup.py install
-from distutils.core import setup
-
+from distutils.core import Extension, setup
 from Cython.Build import cythonize
 
-setup(ext_modules=cythonize(
-    [
-        "pygame_demo_vis_pygame.pyx",
-    ],
-    language_level=3,
-))
+extensions = [
+    Extension("sink_drivers.sink_driver", ["sink_drivers/sink_driver.pyx"]),
+    Extension("sink_drivers.vis_pygame.vis_pygame", ["sink_drivers/vis_pygame/vis_pygame.pyx"]),
+]
+
+setup(
+    name="sink_drivers",
+    ext_modules=cythonize(extensions, language_level=3),
+)

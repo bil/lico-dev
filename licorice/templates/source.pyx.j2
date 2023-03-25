@@ -33,7 +33,7 @@ from module_utils import create_shared_array
 
 {% if is_reader -%}
 # import driver
-from .source_drivers.{{ driver_import }} cimport {{ driver_name }}
+from {{ driver_import }} cimport {{ driver_class }}
 {%- endif %}
 
 # headers for all sources
@@ -306,7 +306,7 @@ sa.mlock(out_sigs["{{sig}}"])
     {%- endif %}
   {%- endfor %}
 
-driver = {{ driver_name }}(out_sig)
+driver = {{ driver_class }}(out_sig)
 
 {%- endif %}
 

@@ -23,9 +23,9 @@ import SharedArray as sa
 import time
 
 {% if is_writer -%}
-#cimport pygame_demo_vis_pygame
-#import pygame_demo_vis_pygame
-#from .sink_drivers.{{ driver_import }} cimport {{ driver_name }}
+
+cimport sink_drivers.{{ driver_import }} as {{ driver_name }}
+import sink_drivers.{{ driver_import }} as {{ driver_name }}
 {%- endif %}
 
 # headers for all sinks
@@ -74,6 +74,10 @@ cdef extern from "<pthread.h>" nogil:
 {%- endif %}
 
 # cdef variables
+
+# driver
+cdef {{ driver_name }}.{{ driver_class }} driver
+
 cdef pid_t pid, ppid
 cdef sigset_t exitMask
 cdef char pathName[MAX_PATH_LEN]
@@ -287,22 +291,7 @@ in_sig = in_sigs["{{sig}}"]
   {% endfor %}
 {%- endif %}
 
-driver = None
-#driver = pygame_demo_vis_pygame.{{ driver_name }}()
-
-{%- endif %}
-
-{% if is_writer %}
-  {%- if has_in_signal %}
-outBufStrt = <{{in_signal_type}} *><long>in_sig.__array_interface__["data"][0]
-outBuf = outBufStrt
-outBufEnd = outBufStrt + {{in_signal_name}}BufVars[7]
-  {%- else %}
-outBufStrt = <{{out_dtype}} *>malloc(packetSize)
-outBuf = outBufStrt
-outBufEnd = outBufStrt + packetSize
-  {%- endif %}
-{%- endif %}
+driver = {{ driver_name }}.{{ driver_class }}()
 
 {%- endif %}
 
@@ -424,7 +413,7 @@ while(True):
   {% endif %}
 
 
-driver.run(outBuf, outBufLen)
+  driver.run(outBuf, outBufLen)
 
   {%- if not is_main_process %}
   if (shouldExit) and (pAsyncFlushIndexStrt[0] == pAsyncFlushIndexEnd[0]):
