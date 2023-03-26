@@ -6,7 +6,7 @@ sink_extensions = [
 {%- for name in driver_names  %}
     Extension(
         "sink_drivers.{{ name }}.{{ name }}",
-        ["sink_drivers/{{ name }}/{{ name }}.pyx", "sink_drivers/{{ name }}/sqlHelpers.c", "sink_drivers/{{ name }}/sqlite3async.c"],
+        ["sink_drivers/{{ name }}/{{ name }}.pyx"],
     ),
 {%- endfor %}
 ]
