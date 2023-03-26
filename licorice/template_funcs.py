@@ -1430,6 +1430,12 @@ def parse(paths, config, confirmed):
     if platform_system == "Linux":
         extra_incl = "-lrt"
 
+    drivers_incl = [
+        f"-I source_drivers/{name}" for name in source_driver_names
+    ]
+    drivers_incl += [f"-I sink_drivers/{name}" for name in sink_driver_names]
+    drivers_incl = " ".join(drivers_incl)
+
     do_jinja(
         __find_in_path(paths["templates"], TEMPLATE_MAKEFILE),
         os.path.join(paths["output"], OUTPUT_MAKEFILE),
@@ -1443,6 +1449,7 @@ def parse(paths, config, confirmed):
         source_types=list(map(lambda x: modules[x]["language"], source_names)),
         extra_incl=extra_incl,
         numpy_incl=np.get_include(),
+        drivers_incl=drivers_incl,
         py_incl=py_paths["include"],
         py_lib=get_config_var("PY_LDFLAGS"),
         py_link_flags=py_link_flags,
@@ -1508,15 +1515,15 @@ def parse(paths, config, confirmed):
     )
 
     # parse driver setup file
-    # if len(source_driver_names) + len(sink_driver_names) > 0:
-    #     do_jinja(
-    #         __find_in_path(
-    #             paths["templates"],
-    #             "setup_drivers.py.j2",
-    #         ),
-    #         os.path.join(paths["output"], "setup_drivers.py"),
-    #         driver_names=source_driver_names + sink_driver_names,
-    #     )
+    if len(source_driver_names) + len(sink_driver_names) > 0:
+        do_jinja(
+            __find_in_path(
+                paths["templates"],
+                "setup_drivers.py.j2",
+            ),
+            os.path.join(paths["output"], "setup_drivers.py"),
+            driver_names=source_driver_names + sink_driver_names,
+        )
 
 
 def export(paths, confirmed):

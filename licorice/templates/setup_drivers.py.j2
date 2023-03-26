@@ -1,12 +1,33 @@
-# python setup.py install
-from distutils.core import setup
+from distutils.core import Extension, setup
 from Cython.Build import cythonize
 
-setup(ext_modules=cythonize(
-    [
+sink_extensions = [
+    Extension("sink_drivers.sink_driver", ["sink_drivers/sink_driver.pyx"]),
 {%- for name in driver_names  %}
-        "{{name}}.pyx",
+    Extension(
+        "sink_drivers.{{ name }}.{{ name }}",
+        ["sink_drivers/{{ name }}/{{ name }}.pyx", "sink_drivers/{{ name }}/sqlHelpers.c", "sink_drivers/{{ name }}/sqlite3async.c"],
+    ),
 {%- endfor %}
-    ],
-    language_level=3,
-))
+]
+
+setup(
+    name="sink_drivers",
+    ext_modules=cythonize(sink_extensions, language_level=3),
+)
+
+
+source_extensions = [
+    Extension("source_drivers.source_driver", ["source_drivers/source_driver.pyx"]),
+{%- for name in driver_names  %}
+    Extension(
+        "source_drivers.{{ name }}}.{{ name }}}",
+        ["source_drivers/{{ name }}}/{{ name }}}.pyx"],
+    ),
+{%- endfor %}
+]
+
+setup(
+    name="source_drivers",
+    ext_modules=cythonize(sink_extensions, language_level=3),
+)

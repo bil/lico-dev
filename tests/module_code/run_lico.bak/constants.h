@@ -1,3 +1,7 @@
+#include <pthread.h>
+#include <stdint.h>
+#include <time.h>
+
 #ifndef _CONSTANTS_
 #define _CONSTANTS_ 
 /************************************
@@ -7,7 +11,7 @@
  * Number of ticks for LiCoRICE to run. The default value (-1) indicates
  * that LiCORICE will run until it is stopped by an interrupt or exception.
  */
-#define NUM_TICKS 100
+#define NUM_TICKS 1000
 /*
  * The offset from which to run the child processes, zero-indexed. Usually 
  * the first (CPU 0) is for the parent timer process itself, the second
@@ -82,22 +86,20 @@
 #define MAX_PATH_LEN 16
 
 /*
- * This is the number of ticks at the beginning of execution during which the
- * child processes do not run.
- * Don't touch.
- * Can be thought of as system latency. Default is 50 when a line source exists
- * given 20ms sound card buffer period.
+ * The number of ticks at the beginning of execution during which
+ * module and sink processes do not run. Defaults to 100.
  */
-#define INIT_BUFFER_TICKS 100
+#define SOURCE_INIT_TICKS 100
+
+/*
+ * The number of ticks after SOURCE_INIT_TICKS during which sink processes do
+ * not run, but module processes do. Defaults to 0.
+ */
+#define MODULE_INIT_TICKS 0
 
 /*******************
 * Global constants *
 ********************/
-
-// Set by jinja2 templating
-// Number of non_source processes
-#define NUM_NON_SOURCES 2
-
 // Number of async reader processes
 #define NUM_ASYNC_READERS 0
 
@@ -158,7 +160,7 @@
   2: next data location
   3: num samples received this tick
   4: buffer end offset (samples)
-  5: packet size (bytes)
+  5: packet size (samples)
   6: max samples per tick (samples)
   7: buffer size offset (samples)
   8: current data nd index start
@@ -178,16 +180,18 @@
 
 // Each section of shared memory's size is defined here:
 #define NUM_TICKS_SIZE sizeof(int64_t)
+#define CLOCK_TIME_SIZE sizeof(struct timespec)
 #define BUF_VARS_SIZE (sizeof(uint32_t) * BUF_VARS_LEN * NUM_INTERNAL_SIGS)
 #define ASYNC_READER_MUTEXES_SIZE (sizeof(pthread_mutex_t) * NUM_ASYNC_READERS)
 
 // Each section of shared memory's byte off set is then calculatd
 #define NUM_TICKS_OFFSET 0
-#define BUF_VARS_OFFSET (NUM_TICKS_OFFSET + NUM_TICKS_SIZE)
+#define CLOCK_TIME_OFFSET (NUM_TICKS_OFFSET + NUM_TICKS_SIZE)
+#define BUF_VARS_OFFSET (CLOCK_TIME_OFFSET + CLOCK_TIME_SIZE)
 #define ASYNC_READER_MUTEXES_OFFSET (BUF_VARS_OFFSET + BUF_VARS_SIZE)
 
 // Results in a simple total size calculation
-#define SHM_SIZE (NUM_TICKS_SIZE + BUF_VARS_SIZE + ASYNC_READER_MUTEXES_SIZE)
+#define SHM_SIZE (NUM_TICKS_SIZE + CLOCK_TIME_SIZE + BUF_VARS_SIZE + ASYNC_READER_MUTEXES_SIZE)
 
 // Named sempahore name buffer length.
 #define SEM_NAME_LEN 32

@@ -879,8 +879,8 @@ static struct __pyx_vtabstruct_12sink_drivers_11sink_driver_SinkDriver *__pyx_vt
  * from sink_drivers cimport sink_driver
  * 
  * cdef class VisPygameSinkDriver(sink_driver.SinkDriver):             # <<<<<<<<<<<<<<
- *     cdef void run(self, uint8_t *outBuf, size_t outBufLen) except *:
- *         pass
+ *         cdef void run(self, uint8_t *outBuf, size_t outBufLen) except *:
+ *             pass
  */
 
 struct __pyx_vtabstruct_12sink_drivers_10vis_pygame_10vis_pygame_VisPygameSinkDriver {
@@ -1302,8 +1302,8 @@ static PyObject *__pyx_codeobj__2;
 /* "sink_drivers/vis_pygame/vis_pygame.pyx":6
  * 
  * cdef class VisPygameSinkDriver(sink_driver.SinkDriver):
- *     cdef void run(self, uint8_t *outBuf, size_t outBufLen) except *:             # <<<<<<<<<<<<<<
- *         pass
+ *         cdef void run(self, uint8_t *outBuf, size_t outBufLen) except *:             # <<<<<<<<<<<<<<
+ *             pass
  * 
  */
 
@@ -1316,10 +1316,10 @@ static void __pyx_f_12sink_drivers_10vis_pygame_10vis_pygame_19VisPygameSinkDriv
 }
 
 /* "sink_drivers/vis_pygame/vis_pygame.pyx":9
- *         pass
+ *             pass
  * 
- *     cdef void exit_handler(self, int exitStatus) except *:             # <<<<<<<<<<<<<<
- *         pass
+ *         cdef void exit_handler(self, int exitStatus) except *:             # <<<<<<<<<<<<<<
+ *             pass
  */
 
 static void __pyx_f_12sink_drivers_10vis_pygame_10vis_pygame_19VisPygameSinkDriver_exit_handler(CYTHON_UNUSED struct __pyx_obj_12sink_drivers_10vis_pygame_10vis_pygame_VisPygameSinkDriver *__pyx_v_self, CYTHON_UNUSED int __pyx_v_exitStatus) {

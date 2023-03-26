@@ -74,9 +74,11 @@ cdef extern from "<pthread.h>" nogil:
 {%- endif %}
 
 # cdef variables
+{% if is_writer -%}
 
 # driver
 cdef {{ driver_name }}.{{ driver_class }} driver
+{%- endif %}
 
 cdef pid_t pid, ppid
 cdef sigset_t exitMask
@@ -132,6 +134,7 @@ ASYNC_BUF_LEN = {{async_buf_len}}
 # python variables
 lastVal = 1
 in_sigs = {}
+in_sig_lens = {}
 {%- if has_in_signal == 1 %}
 in_sig = None
 {%- endif %}
@@ -371,7 +374,8 @@ while(True):
     {{sig}} = {{sig}}Raw[asyncStrtOffset]
   else:
     {{sig}} = {{sig}}Raw[asyncStrtOffset:asyncEndOffset]
-  {{sig}}Len =  pAsyncBufInfo[pAsyncFlushIndexStrt[0]].{{sig}}Len
+  in_sig_lens["{{sig}}"] = pAsyncBufInfo[pAsyncFlushIndexStrt[0]].{{sig}}Len
+  {{sig}}Len = in_sig_lens["{{sig}}"]
     {% endfor %}
 
     {%- if has_parser %}
@@ -396,7 +400,8 @@ while(True):
     {{sig}} = {{sig}}Raw[{{sig}}BufVars[8]]
   else:
     {{sig}} = {{sig}}Raw[{{sig}}BufVars[8]:{{sig}}BufVars[9]]
-  {{sig}}Len = {{sig}}BufVars[1] - {{sig}}BufVars[0]
+  in_sig_lens["{{sig}}"] = {{sig}}BufVars[1] - {{sig}}BufVars[0]
+  {{sig}}Len = in_sig_lens["{{sig}}"]
     {% endfor %}
 
     {%- if has_parser %}
@@ -413,7 +418,7 @@ while(True):
   {% endif %}
 
 
-  driver.run(outBuf, outBufLen)
+  driver.run(<uint8_t *>outBuf, outBufLen, in_sigs, in_sig_lens)
 
   {%- if not is_main_process %}
   if (shouldExit) and (pAsyncFlushIndexStrt[0] == pAsyncFlushIndexEnd[0]):
