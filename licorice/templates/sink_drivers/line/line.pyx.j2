@@ -5,7 +5,7 @@ from posix.signal cimport sigset_t, sigfillset
 from libc.string cimport memcpy
 from libcpp cimport bool
 
-from .sink_driver cimport SinkDriver
+from sink_drivers cimport sink_driver
 
 cdef extern from "../utilityFunctions.h":
   void die(char *errorStr)
@@ -66,8 +66,8 @@ cdef extern from "../lineUtilities.h" nogil:
 
 DEF LINE_BUFFER_PERIODS = 4 # TODO figure out where constants live now
 
-cdef class LineSinkDriver(SinkDriver):
-    def __init__(self):
+cdef class LineSinkDriver(sink_driver.SinkDriver):
+    def __cinit__(self):
         # initialize line out
         self.play_values.device = "{{out_signal["args"]["pcm"]["device"]}}"
         self.play_values.mode = {{out_signal["args"]["pcm"]["mode"]}}
@@ -92,7 +92,7 @@ cdef class LineSinkDriver(SinkDriver):
         snd_pcm_prepare(self.play_handle)
 
 
-    cdef void run(self, uint8_t *outBuf, size_t outBufLen) except *:
+    cdef void run(self, uint8_t *outBuf, size_t outBufLen, object in_sigs, object in_sig_lens) except *
         # TODO debug latency
         # TODO make pNumTicks accessible
         # printf("%d\n", pNumTicks[0])

@@ -158,7 +158,8 @@ void createTables(sqlite3 *db, SQLTable* databaseArr) {
       }
     } 
     strcat(cmd, CLOSE_BRACE_SEMI);
-    // printf("%s\n", cmd);
+    printf("%s\n", cmd);
+    fflush(stdout);
     rc = sqlite3_exec(db, cmd, NULL, NULL, &zErrMsg);
       if (rc != SQLITE_OK) {
         // print zErrMsg

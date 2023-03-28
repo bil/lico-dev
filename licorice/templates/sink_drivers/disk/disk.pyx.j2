@@ -251,6 +251,9 @@ cdef class DiskSinkDriver(sink_driver.SinkDriver):
     # after SQL_LOGGER_FLUSH ticks, flush buffered data to DB
     # TODO this has to be a different var since numTicks is not accurate for async
     self.tick_count += 1
+    printf("%lu\n", self.tick_count)
+    printf("%lu\n", SQL_LOGGER_FLUSH)
+    fflush(stdout)
     if (self.tick_count % SQL_LOGGER_FLUSH == 0):
       self.pSignalsStructEnd = self.pSignalsStructStart + SQL_LOGGER_FLUSH
       self.flushToDisk()
@@ -298,7 +301,9 @@ cdef class DiskSinkDriver(sink_driver.SinkDriver):
       self.pSignalsStructCur = self.signalsBufStrt
 
   cdef bint flushToDisk(self, bint newDB=False) nogil:
-    complete = True
+    printf("SQL flush\n")
+    fflush(stdout)
+    cdef bint complete = True
 
     # create new database if time limit reached
     if (newDB):
@@ -385,4 +390,7 @@ cdef class DiskSinkDriver(sink_driver.SinkDriver):
 
     if not complete:
       self.flushToDisk(newDB=True)
+
+    printf("FINISHED FLUSH\n")
+    fflush(stdout)
 

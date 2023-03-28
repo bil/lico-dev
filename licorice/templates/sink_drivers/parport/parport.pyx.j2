@@ -4,7 +4,7 @@ from libc.stdint cimport uint8_t
 
 from sink_drivers cimport sink_driver
 
-cdef class PygameSinkDriver(sink_driver.SinkDriver):
+cdef class ParportSinkDriver(sink_driver.SinkDriver):
     def __cinit__(self):
         self.pport = parallel.Parallel(port={{out_signal['args']['addr']}})
 

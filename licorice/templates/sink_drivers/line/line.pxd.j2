@@ -2,8 +2,7 @@ from posix.signal cimport sigset_t
 
 from libc.stdint cimport uint8_t, uint32_t
 
-from .sink_driver cimport SinkDriver
-
+from sink_drivers cimport sink_driver
 
 cdef extern from "<sys/types.h>":
     ctypedef int pthread_t
@@ -39,7 +38,7 @@ cdef extern from "../lineUtilities.h" nogil:
         snd_pcm_sframes_t buffer_size
         snd_pcm_sframes_t period_size
 
-cdef class LineSinkDriver(SinkDriver):
+cdef class LineSinkDriver(sink_driver.SinkDriver):
     cdef snd_pcm_t *play_handle
     cdef snd_pcm_hw_params_t *play_hwparams
     cdef snd_pcm_sw_params_t *play_swparams
@@ -54,6 +53,5 @@ cdef class LineSinkDriver(SinkDriver):
     cdef long int lineSamplesWrapped
     cdef pcm_values_t play_values
 
-    cdef void run(self, uint8_t *outBuf, size_t outBufLen) except *
+    cdef void run(self, uint8_t *outBuf, size_t outBufLen, object in_sigs, object in_sig_lens) except *
     cdef void exit_handler(self, int exitStatus) except *
-    cdef void* processRequests(self, void *arg) nogil

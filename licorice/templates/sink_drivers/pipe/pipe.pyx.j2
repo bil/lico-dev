@@ -1,30 +1,25 @@
-# __DRIVER_CODE__ imports
+from libc.stdint cimport uint8_t
+
+from sink_drivers cimport sink_driver
 
 cdef extern from "<sys/types.h>":
-  ctypedef unsigned short mode_t
+    ctypedef unsigned short mode_t
 cdef extern from "<sys/stat.h>":
-  int mkfifo(const char *, mode_t)
+    int mkfifo(const char *, mode_t)
 
 
-# __DRIVER_CODE__ variables
+cdef class PipeSinkDriver(sink_driver.SinkDriver):
+    def __cinit__(self):
+        self.FIFOFILE = = '{{out_signal['args']['filepath']}}'
+        self.named_pipe = open(FIFOFILE, O_RDWR)
+        if (self.named_pipe == -1):
+            die("Could not open pipe \n")
 
-cdef int named_pipe
-cdef const char *FIFOFILE = '{{out_signal['args']['filepath']}}'
+    cdef void run(self, uint8_t *outBuf, size_t outBufLen, object in_sigs, object in_sig_lens) except *
+        if(outBufLen > 0):
+            if(write(self.named_pipe, outBuf, outBufLen) == -1):
+                die("Pipe Write Failed \n")
 
-# temporary pointer to pass to output APIs
-cdef uint8_t *outBuf
-cdef size_t sentBytes
-cdef size_t outBufLen
-
-
-# __DRIVER_CODE__ setup
-
-# __DRIVER_CODE__ write
-
-  if(outBufLen > 0):
-    if(write(named_pipe, outBuf, outBufLen) == -1):
-      die("Pipe Write Failed \n") 
-
-# __DRIVER_CODE__ exit_handler
-  close(named_pipe)
-  remove(FIFOFILE)
+    cdef void exit_handler(self, int exitStatus) except *
+        close(self.named_pipe)
+        remove(self.FIFOFILE)
