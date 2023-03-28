@@ -1,16 +1,16 @@
-# __DRIVER_CODE__ imports
 import parallel
 
-# __DRIVER_CODE__ variables
+from libc.stdint cimport uint8_t
 
-# __DRIVER_CODE__ setup
+from sink_drivers cimport sink_driver
 
-# make sure parport is writeable
-pport = parallel.Parallel(port={{out_signal['args']['addr']}})
+cdef class PygameSinkDriver(sink_driver.SinkDriver):
+    def __cinit__(self):
+        self.pport = parallel.Parallel(port={{out_signal['args']['addr']}})
 
-# __DRIVER_CODE__ write
+    cdef void run(self, uint8_t *outBuf, size_t outBufLen, object in_sigs, object in_sig_lens) except *:
+        self.pport.setData(<unsigned char>outBuf[0])
 
-  pport.setData(<unsigned char>outBuf[0])
+    cdef void exit_handler(self, int exitStatus) except *:
+        pass
 
-# __DRIVER_CODE__ exit_handler
-  free(outBuf)
