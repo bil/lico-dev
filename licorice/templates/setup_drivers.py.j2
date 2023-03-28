@@ -1,6 +1,8 @@
 from distutils.core import Extension, setup
 from Cython.Build import cythonize
 
+# TODO dynamically add extra source files in driver folder
+
 sink_extensions = [
     Extension("sink_drivers.sink_driver", ["sink_drivers/sink_driver.pyx"]),
 {%- for name in driver_names  %}
