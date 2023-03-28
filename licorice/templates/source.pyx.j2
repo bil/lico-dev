@@ -33,7 +33,8 @@ from module_utils import create_shared_array
 
 {% if is_reader -%}
 # import driver
-from {{ driver_import }} cimport {{ driver_class }}
+cimport source_drivers.{{ driver_import }} as {{ driver_name }}
+import source_drivers.{{ driver_import }} as {{ driver_name }}
 {%- endif %}
 
 # headers for all sources
@@ -306,7 +307,7 @@ sa.mlock(out_sigs["{{sig}}"])
     {%- endif %}
   {%- endfor %}
 
-driver = {{ driver_class }}(out_sig)
+driver = {{ driver_name }}.{{ driver_class }}()
 
 {%- endif %}
 
@@ -359,7 +360,7 @@ while(True):
   {%- endif %}
 
   # TODO add inBufLen?
-  driver.run(inBuf)
+  driver.run(&inBuf, &inBufLen, &out_sigs, &out_sig_lens)
 
   {%- if has_parser %}
     {%- for sig, args in out_signals.items() %}

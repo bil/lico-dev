@@ -59,7 +59,7 @@ DEF SIG_BLOCK = 1
 DEF LINE_BUFFER_PERIODS = 100
 
 cdef class LineSourceDriver(source_driverSourceDriver):
-    def __init__(self):
+    def __cinit__(self):
         # initiliaze line in
         self.cap_values.device = '{{in_signal["args"]["pcm"]["device"]}}'
         self.cap_values.mode = {{in_signal["args"]["pcm"]["mode"]}}

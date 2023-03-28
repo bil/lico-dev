@@ -23,7 +23,7 @@ import SharedArray as sa
 import time
 
 {% if is_writer -%}
-
+# import driver
 cimport sink_drivers.{{ driver_import }} as {{ driver_name }}
 import sink_drivers.{{ driver_import }} as {{ driver_name }}
 {%- endif %}
@@ -143,7 +143,7 @@ shouldExit = False
 {%- endif %}
 
 cdef void handle_exit(int exitStatus):
-  global retVal, tid, radio, context, s, shmSize, pmem, pSinkUpSem, pSinkDownSem, pSigSems
+  global retVal, tid, radio, context, s, shmSize, pmem, pSinkUpSem, pSinkDownSem, pSigSems, outBufStrt
 
 {%- if is_writer %}
 
@@ -151,6 +151,10 @@ cdef void handle_exit(int exitStatus):
 
   driver.exit_handler(exitStatus)
 
+{%- endif %}
+
+{% if is_writer and not has_in_signal %}
+  free(outBufStrt)
 {%- endif %}
 
   munmap(pmem, shmSize)

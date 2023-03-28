@@ -7,7 +7,7 @@ LDFLAGS = -levent -pthread -lsqlite3 {{extra_incl}}
 LDTESTFLAGS = -lsqlite3 -pthread
 CYLDFLAGS = {{py_lib}} -lsqlite3 {% if line %}-lasound{% endif %} {{py_link_flags}} {{extra_incl}} # -lpthread -lm -lutil -ldl should be included in py_link_flags
 
-all: timer drivers {% for sd in source_driver_names %}{{sd}} {% endfor %}{% for so in source_names %}{{so}} {% endfor %}{% for ar in async_reader_names %}{{ar}} {% endfor %}{% for si in sink_names %}{{si}} {% endfor %}{% for aw in async_writer_names %}{{aw}} {% endfor %}{% for c in module_names %}{{c}} {% endfor %} #drivers
+all: timer {% if has_drivers %}drivers {% endif %}{% for sd in source_driver_names %}{{sd}} {% endfor %}{% for so in source_names %}{{so}} {% endfor %}{% for ar in async_reader_names %}{{ar}} {% endfor %}{% for si in sink_names %}{{si}} {% endfor %}{% for aw in async_writer_names %}{{aw}} {% endfor %}{% for c in module_names %}{{c}} {% endfor %} #drivers
 
 timer: timer.c utilityFunctions.c {% if darwin %}darwin_compat/clock_nanosleep.c{% endif %}
 	$(CC) $(CFLAGS) timer.c utilityFunctions.c {% if darwin %}darwin_compat/clock_nanosleep.c{% endif %} -o timer $(LDFLAGS)

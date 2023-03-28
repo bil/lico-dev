@@ -1455,6 +1455,7 @@ def parse(paths, config, confirmed):
         py_link_flags=py_link_flags,
         line=compile_for_line,
         darwin=(platform_system == "Darwin"),
+        has_drivers=(len(source_driver_names) + len(sink_driver_names) > 0),
     )
 
     # parse timer parent
