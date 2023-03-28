@@ -31,7 +31,7 @@ cdef class PipeSourceDriver(source_driver.SourceDriver):
 
 
 
-    cdef void run(self, uint8_t *outBuf, size_t outBufLen, object in_sigs, object in_sig_lens) except *:
+    cdef void run(self, uint8_t **inBuf, size_t *inBufLen, object *out_sigs, object *out_sig_lens) except *
         try:
 
             # try to read from pipe
@@ -41,22 +41,22 @@ cdef class PipeSourceDriver(source_driver.SourceDriver):
             if(self.read_size > 0):
                 if(self.packetSize > self.read_size):
                     self.zero_len = self.packetSize - self.read_size
-                    memcpy(<char *>inBuf, self.pipe_buf, self.read_size)
+                    memcpy(<char *>inBuf[0], self.pipe_buf, self.read_size)
                     memcpy(<char *>self.zeroPtr, self.zero_buf, self.zero_len)
                 else:
-                    memcpy(<char *>inBuf, self.pipe_buf, self.packetSize)
+                    memcpy(<char *>inBuf[0], self.pipe_buf, self.packetSize)
             else:
                 # no bytes read
                 self.read_size = 0
                 self.zeroPtr = self.inBufStrt + self.read_size
-                memcpy(<char *>inBuf, self.pipe_zero_buf, self.packetSize)
+                memcpy(<char *>inBuf[0], self.pipe_zero_buf, self.packetSize)
             # print read_size
         except OSError as err:
         # catch error when trying to read from an empty pipe in non_blocking mode
             if(err.errno == 11):
                 self.read_size = 0
                 self.zeroPtr = self.inBufStrt + self.read_size
-                memcpy(<char *>inBuf, self.pipe_zero_buf, self.packetSize)
+                memcpy(<char *>inBuf[0], self.pipe_zero_buf, self.packetSize)
             else:
                 die("Source Pipe Read Failed.\n")
 
