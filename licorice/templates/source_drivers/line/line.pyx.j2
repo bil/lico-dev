@@ -6,7 +6,7 @@ from libc.string cimport memcpy
 
 from time import sleep
 
-from .source_driver cimport SourceDriver
+from .source_drivers cimport source_driver
 
 
 cdef extern from "<alsa/asoundlib.h>":
@@ -58,8 +58,8 @@ cdef extern from "../utilityFunctions.h":
 DEF SIG_BLOCK = 1
 DEF LINE_BUFFER_PERIODS = 100
 
-cdef class LineSourceDriver(SourceDriver):
-    def __init__(self, bufVars):
+cdef class LineSourceDriver(source_driverSourceDriver):
+    def __init__(self):
         # initiliaze line in
         self.cap_values.device = '{{in_signal["args"]["pcm"]["device"]}}'
         self.cap_values.mode = {{in_signal["args"]["pcm"]["mode"]}}
@@ -95,16 +95,17 @@ cdef class LineSourceDriver(SourceDriver):
         # sleep_duration = sleep_duration * 2.
 
 
-    cdef void run(self, uint8_t *inBuf) except *: #, size_t inBufLen) except *:
+    cdef void run(self, uint8_t **inBuf, size_t *inBufLen, object *out_sigs, object *out_sig_lens) except *
         # printf("read (num_ticks, lineBufferSizeFrames, lineBufferSizeBytes): %ld, %lu, %lu\n",
         #   pNumTicks[0], lineBufferSizeFrames, lineBufferSizeBytes)
         # fflush(stdout)
 
-        if (pcm_read_buffer(self.cap_handle, inBuf, self.linePeriodSizeFrames) < 0):
+        if (pcm_read_buffer(self.cap_handle, inBuf[0], self.linePeriodSizeFrames) < 0):
             die("pcm_read_buffer failed.\n")
-        # memset(inBuf, pNumTicks[0], lineBufferSizeBytes)
+        # memset(inBuf[0], pNumTicks[0], lineBufferSizeBytes)
 
 {%- if async %}
+
         sleep(self.sleep_duration)
 {%- endif %}
 

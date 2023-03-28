@@ -4,127 +4,116 @@ from time import sleep
 from posix.types cimport suseconds_t, time_t
 
 cdef extern from "<netdb.h>":
-  const char *gai_strerror(int ecode);
-  struct addrinfo:
-    int ai_family
-    int ai_socktype
-    int ai_flags
-    int ai_protocol
-    char *ai_canonname
-    sockaddr *ai_addr
-    addrinfo *ai_next
-    int ai_addrlen
-  int getaddrinfo (const char *node, const char *service, const addrinfo *hints, addrinfo **res)
-  void freeaddrinfo (addrinfo *ai)
-  enum: AI_PASSIVE
+    const char *gai_strerror(int ecode);
+    struct addrinfo:
+        int ai_family
+        int ai_socktype
+        int ai_flags
+        int ai_protocol
+        char *ai_canonname
+        sockaddr *ai_addr
+        addrinfo *ai_next
+        int ai_addrlen
+    int getaddrinfo (const char *node, const char *service, const addrinfo *hints, addrinfo **res)
+    void freeaddrinfo (addrinfo *ai)
+    enum: AI_PASSIVE
 
 cdef extern from "<arpa/inet.h>":
-  ctypedef uint32_t in_addr_t
-  uint16_t htons(uint16_t hostshort)
-  in_addr_t inet_addr(const char *cp);
+    ctypedef uint32_t in_addr_t
+    uint16_t htons(uint16_t hostshort)
+    in_addr_t inet_addr(const char *cp);
 
 cdef extern from "<netinet/in.h>":
-  enum: IPPROTO_UDP
-  ctypedef unsigned short sa_family_t
+    enum: IPPROTO_UDP
+    ctypedef unsigned short sa_family_t
 
 cdef extern from "<sys/socket.h>":
-  enum: AF_INET
-  enum: SOCK_DGRAM
-  enum: MSG_DONTWAIT
-  enum: SOL_SOCKET
-  enum: SO_RCVTIMEO
-  struct sockaddr:
-    unsigned char sa_len
-    unsigned char sa_family  
-    char  sa_data[14]
-  ssize_t recvfrom(int, void *restrict, size_t, int, sockaddr *restrict, socklen_t *restrict)
-  int bind(int, const sockaddr *, socklen_t)
-  int socket(int domain, int type, int protocol)
-  int setsockopt(int socket, int level, int option_name,
-       const void *option_value, socklen_t option_len);
+    enum: AF_INET
+    enum: SOCK_DGRAM
+    enum: MSG_DONTWAIT
+    enum: SOL_SOCKET
+    enum: SO_RCVTIMEO
+    struct sockaddr:
+        unsigned char sa_len
+        unsigned char sa_family
+        char  sa_data[14]
+    ssize_t recvfrom(int, void *restrict, size_t, int, sockaddr *restrict, socklen_t *restrict)
+    int bind(int, const sockaddr *, socklen_t)
+    int socket(int domain, int type, int protocol)
+    int setsockopt(int socket, int level, int option_name,
+             const void *option_value, socklen_t option_len);
 
-  cdef struct sockaddr_storage:
-      unsigned char sa_len
-      sa_family_t sa_family
+    cdef struct sockaddr_storage:
+            unsigned char sa_len
+            sa_family_t sa_family
 
 cdef extern from "<sys/time.h>":
-  cdef struct timeval:
-    time_t tv_sec
-    suseconds_t tv_usec
-
-# __DRIVER_CODE__ variables
-
-cdef sockaddr_storage src_addr
-cdef socklen_t src_addr_len = sizeof(sockaddr_storage)
-
-cdef addrinfo hints
-cdef addrinfo *result, *rp
-cdef int sfd, s
-cdef ssize_t recvLen
-cdef timeval tv
-
-cdef enum:
-  MAX_NUM_PACKETS_PER_TICK = {{in_signal['schema']['max_packets_per_tick']}}
-
-# __DRIVER_CODE__ setup
-
-# create a UDP socket
-memset(&hints, 0, sizeof(addrinfo))
-hints.ai_family = AF_INET       # IPv4 only
-hints.ai_socktype = SOCK_DGRAM  # Datagram socket
-hints.ai_flags = AI_PASSIVE     # For use with bind
-hints.ai_protocol = IPPROTO_UDP # UDP only
-hints.ai_canonname = NULL
-hints.ai_addr = NULL
-hints.ai_next = NULL
-
-s = getaddrinfo(
-  "{{in_signal['args']['interface']}}",
-  "{{in_signal['args']['port']}}", 
-  &hints, 
-  &result
-)
-if (s != 0):
-  fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(s))
-  die("getaddrinfo")
-
-rp = result
-while (rp != NULL):
-  sfd = socket(rp.ai_family, rp.ai_socktype, rp.ai_protocol)
-  if (sfd == -1):
-    continue
-  if (bind(sfd, rp.ai_addr, rp.ai_addrlen) == 0):
-    break # Success
-  close(sfd)
-  rp = rp.ai_next
-
-if (rp == NULL): # No address succeeded
-    fprintf(stderr, "Could not bind\n")
-    die("Could not bind")
+    cdef struct timeval:
+        time_t tv_sec
+        suseconds_t tv_usec
 
 
-tv.tv_sec = 60
-tv.tv_usec = 0
-if (setsockopt(sfd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0):
-    die("Could not set socket timeout.")
+cdef class UdpSourceDriver(source_driver.SourceDriver):
+    def __cinit__(self):
+        self.src_addr_len = sizeof(sockaddr_storage)
 
-freeaddrinfo(result) # No longer needed
+        # create a UDP socket
+        memset(&self.hints, 0, sizeof(addrinfo))
+        self.hints.ai_family = AF_INET       # IPv4 only
+        self.hints.ai_socktype = SOCK_DGRAM  # Datagram socket
+        self.hints.ai_flags = AI_PASSIVE     # For use with bind
+        self.hints.ai_protocol = IPPROTO_UDP # UDP only
+        self.hints.ai_canonname = NULL
+        self.hints.ai_addr = NULL
+        self.hints.ai_next = NULL
 
-sleep_duration = {{config["config"]["tick_len"]}} / (2. * 1e6)
+        self.s = getaddrinfo(
+            "{{in_signal['args']['interface']}}",
+            "{{in_signal['args']['port']}}",
+            &self.hints,
+            &self.result
+        )
+        if (self.s != 0):
+            fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(s))
+            die("getaddrinfo")
 
-# __DRIVER_CODE__ read
+        self.rp = result
+        while (self.rp != NULL):
+            self.sfd = socket(self.rp.ai_family, self.rp.ai_socktype, self.rp.ai_protocol)
+            if (self.sfd == -1):
+                continue
+            if (bind(self.sfd, self.rp.ai_addr, self.rp.ai_addrlen) == 0):
+                break # Success
+            close(self.sfd)
+            self.rp = self.rp.ai_next
 
-  recvLen = recvfrom(sfd, <void *>inBuf, packetSize, 0, <sockaddr *> &src_addr, &src_addr_len)
-  if (recvLen == -1 and errno != EINTR):
-    die("NETWORK ERROR: recvfrom()\n")
-  if (recvLen == -1):
-    die("Read error.\n")
+        if (self.rp == NULL): # No address succeeded
+            fprintf(stderr, "Could not bind\n")
+            die("Could not bind")
+
+
+        self.tv.tv_sec = 60
+        self.tv.tv_usec = 0
+        if (setsockopt(self.sfd, SOL_SOCKET, SO_RCVTIMEO, &self.tv, sizeof(self.tv)) < 0):
+            die("Could not set socket timeout.")
+
+        freeaddrinfo(self.result) # No longer needed
+
+        self.sleep_duration = {{config["config"]["tick_len"]}} / (2. * 1e6)
+
+    cdef void run(self, uint8_t **inBuf, size_t *inBufLen, object *out_sigs, object *out_sig_lens) except *
+
+        if (recvfrom(self.sfd, <void *>inBuf[0], self.packetSize, 0, <sockaddr *> &self.src_addr, &self.src_addr_len) == -1):
+            if (errno != EINTR):
+                die("NETWORK ERROR: recvfrom()\n")
+            else:
+                die("Read error.\n")
 
 # {%- if async %}
-#   sleep(sleep_duration)
+        #   sleep(self.sleep_duration)
 # {%- endif %}
 
 
-# __DRIVER_CODE__ exit_handler
-  if (sfd):
-    close(sfd)
+    cdef void exit_handler(self, int exitStatus) except *
+        if (self.sfd):
+            close(self.sfd)

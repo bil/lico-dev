@@ -1,20 +1,23 @@
-# __DRIVER_CODE__ imports
 import parallel
 
-# __DRIVER_CODE__ variables
+from libc.stdint cimport uint8_t
 
+from sink_drivers cimport sink_driver
 
-# __DRIVER_CODE__ setup
+cdef class ParportSourceDriver(sink_driver.SinkDriver):
+    def __cinit__(self):
+        self.pport = parallel.Parallel(port={{in_signal['args']['addr']}})
+        pport.setDataDir(False) # read from data pins, sets PPDATADIR
+        self.sleep_duration = {{config["config"]["tick_len"]}} / (2. * 1e6)
 
-pport = parallel.Parallel(port={{in_signal['args']['addr']}})
-pport.setDataDir(False) # read from data pins, sets PPDATADIR
-sleep_duration = {{config["config"]["tick_len"]}} / (2. * 1e6)
-
-# __DRIVER_CODE__ read
-
-  inBuf[0] = <unsigned char>pport.getData()
+    cdef void run(self, uint8_t **inBuf, size_t *inBufLen, object *out_sigs, object *out_sig_lens) except *:
+        inBuf[0] = <unsigned char>self.pport.getData()
 
 {%- if async %}
 
-  sleep(sleep_duration)
+        sleep(self.sleep_duration)
 {%- endif %}
+
+    cdef void exit_handler(self, int exitStatus) except *:
+        pass
+

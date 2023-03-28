@@ -1,0 +1,21 @@
+from libc.stdint cimport uint8_t
+
+from source_drivers cimport source_driver
+
+cdef class UdpSourceDriver(source_driver.SourceDriver):
+    cdef sockaddr_storage src_addr
+    cdef socklen_t src_addr_len
+
+    cdef addrinfo hints
+    cdef addrinfo *result, *rp
+    cdef int sfd, s
+    cdef ssize_t recvLen
+    cdef timeval tv
+    cdef float sleep_duration
+
+    cdef enum:
+        MAX_NUM_PACKETS_PER_TICK = {{in_signal['schema']['max_packets_per_tick']}}
+
+
+    cdef void run(self, uint8_t **inBuf, size_t *inBufLen, object *out_sigs, object *out_sig_lens) except *
+    cdef void exit_handler(self, int exitStatus) except *

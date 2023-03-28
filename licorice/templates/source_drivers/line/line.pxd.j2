@@ -1,8 +1,7 @@
+from libc.stdint cimport uint8_t, uint32_t
 from posix.signal cimport sigset_t
 
-from libc.stdint cimport uint8_t, uint32_t
-
-from .source_driver cimport SourceDriver
+from source_drivers cimport source_driver
 
 
 cdef extern from "<sys/types.h>":
@@ -25,7 +24,7 @@ cdef extern from "<alsa/asoundlib.h>":
     ctypedef _snd_pcm_sw_params snd_pcm_sw_params_t 
     ctypedef unsigned long snd_pcm_uframes_t
 
-cdef class LineSourceDriver(SourceDriver):
+cdef class LineSourceDriver(source_driver.SourceDriver):
     cdef snd_pcm_t *cap_handle
     cdef snd_pcm_hw_params_t *cap_hwparams
     cdef snd_pcm_sw_params_t *cap_swparams
@@ -38,5 +37,5 @@ cdef class LineSourceDriver(SourceDriver):
     cdef snd_pcm_uframes_t lineBufferSizeFrames
     cdef pcm_values_t cap_values
 
-    cdef void run(self, uint8_t *inBuf) except *  #, size_t inBufLen) except *
+    cdef void run(self, uint8_t **inBuf, size_t *inBufLen, object *out_sigs, object *out_sig_lens) except *
     cdef void exit_handler(self, int exitStatus) except *
