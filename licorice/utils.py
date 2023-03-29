@@ -11,7 +11,7 @@ def __handle_completed_process(result, print_stdout=False):
 
 
 # return valid filepath if any of files exists in given path_list
-def __find_in_path(path_list, files, raise_error=True):
+def __find_in_path(path_list: list, files, raise_error=True):
     if type(files) != list:
         files = [files]
     for path in path_list:

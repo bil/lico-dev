@@ -13,6 +13,7 @@ from sysconfig import get_paths
 import jinja2
 import numpy as np
 import psutil
+import yaml
 from toposort import toposort
 
 from licorice.utils import (
@@ -495,7 +496,6 @@ def parse(paths, config, confirmed):
     all_names = list(modules)
     assert len(all_names) == len(set(all_names))
 
-    compile_for_line = False
     for module_key, module_val in iter(modules.items()):
 
         if (
@@ -541,8 +541,6 @@ def parse(paths, config, confirmed):
             out_sig_name = module_val["out"]["name"]
             assert "type" in signals[out_sig_name]["args"]
             out_signals[out_sig_name] = signals[out_sig_name]["args"]["type"]
-            if out_signals[out_sig_name] in ["line"]:
-                compile_for_line = True
         else:
             # module
             if "in" not in module_val or not module_val["in"]:
@@ -1426,15 +1424,46 @@ def parse(paths, config, confirmed):
         .strip()
     )
 
-    extra_incl = ""
+    extra_link_flags = []
     if platform_system == "Linux":
-        extra_incl = "-lrt"
+        extra_link_flags = ["-lrt"]
 
-    drivers_incl = [
-        f"-I source_drivers/{name}" for name in source_driver_names
-    ]
-    drivers_incl += [f"-I sink_drivers/{name}" for name in sink_driver_names]
+    def prepare_drivers(driver_names, driver_path):
+        driver_conf = {"drivers_incl": [], "link_flags": []}
+        for name in driver_names:
+            driver_conf["drivers_incl"].append(f"-I {driver_path}/{name}")
+            driver_conf_filepath = __find_in_path(
+                [
+                    os.path.join(
+                        os.path.dirname(os.path.realpath(__file__)),
+                        f"templates/{driver_path}/{name}",
+                    )
+                ],
+                ["config.yaml", "config.yml"],
+                raise_error=False,
+            )
+            print(f"{driver_path}/{name}")
+            if not driver_conf_filepath:
+                continue
+            with open(driver_conf_filepath, "r") as f:
+                try:
+                    driver_config = yaml.safe_load(f)
+                except yaml.YAMLError as e:
+                    raise ValueError(f"Invalid YAML file with exception: {e}")
+            extra_link_flags.append(driver_config["link_flags"])
+        return driver_conf
+
+    drivers_incl = []
+    source_driver_conf = prepare_drivers(source_driver_names, "source_drivers")
+    sink_driver_conf = prepare_drivers(sink_driver_names, "sink_drivers")
+
+    drivers_incl += source_driver_conf["drivers_incl"]
+    drivers_incl += sink_driver_conf["drivers_incl"]
     drivers_incl = " ".join(drivers_incl)
+
+    extra_link_flags += source_driver_conf["link_flags"]
+    extra_link_flags += sink_driver_conf["link_flags"]
+    extra_link_flags = " ".join(extra_link_flags)
 
     do_jinja(
         __find_in_path(paths["templates"], TEMPLATE_MAKEFILE),
@@ -1447,13 +1476,12 @@ def parse(paths, config, confirmed):
         async_writer_names=async_writer_names,
         sink_driver_names=sink_driver_names,
         source_types=list(map(lambda x: modules[x]["language"], source_names)),
-        extra_incl=extra_incl,
+        extra_link_flags=extra_link_flags,
         numpy_incl=np.get_include(),
         drivers_incl=drivers_incl,
         py_incl=py_paths["include"],
         py_lib=get_config_var("PY_LDFLAGS"),
         py_link_flags=py_link_flags,
-        line=compile_for_line,
         darwin=(platform_system == "Darwin"),
         has_drivers=(len(source_driver_names) + len(sink_driver_names) > 0),
     )

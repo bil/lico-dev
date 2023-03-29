@@ -56,8 +56,8 @@ static int set_hwparams(
   err = snd_pcm_hw_params_get_buffer_size_max(params, &buffer_size_max);
   err = snd_pcm_hw_params_get_period_size_min(params, &period_size_min, NULL);
   err = snd_pcm_hw_params_get_period_size_max(params, &period_size_max, NULL);
-  printf("Buffer size range from %lu to %lu\n",buffer_size_min, buffer_size_max);
-  printf("Period size range from %lu to %lu\n",period_size_min, period_size_max);
+  printf("Buffer size range from %lu to %lu\n", buffer_size_min, buffer_size_max);
+  printf("Period size range from %lu to %lu\n", period_size_min, period_size_max);
   if (values->period_time > 0) {
     printf("Requested period time %u us\n", values->period_time);
     err = snd_pcm_hw_params_set_period_time_near(handle, params, &values->period_time, NULL);
@@ -165,7 +165,7 @@ int pcm_init_capture(
   int err;
   if ((err = snd_pcm_open(pHandle, values->device, SND_PCM_STREAM_CAPTURE, values->mode)) < 0) {
     printf("Playback open error: %s\n", snd_strerror(err));
-    return 0;
+    exit(EXIT_FAILURE);
   }
 
   if ((err = set_hwparams(*pHandle, hwparams, values)) < 0) {
@@ -176,6 +176,8 @@ int pcm_init_capture(
     printf("Setting of swparams failed: %s\n", snd_strerror(err));
     exit(EXIT_FAILURE);
   }
+
+  return 0;
 }
 
 int pcm_init_playback(
@@ -190,17 +192,18 @@ int pcm_init_playback(
   int err;
   if ((err = snd_pcm_open(pHandle, values->device, SND_PCM_STREAM_PLAYBACK, values->mode)) < 0) {
     printf("Playback open error: %s\n", snd_strerror(err));
-    return 0;
+    exit(EXIT_FAILURE);
   }
 
   if ((err = set_hwparams(*pHandle, hwparams, values)) < 0) {
-      printf("Setting of hwparams failed: %s\n", snd_strerror(err));
-      exit(EXIT_FAILURE);
+    printf("Setting of hwparams failed: %s\n", snd_strerror(err));
+    exit(EXIT_FAILURE);
   }
   if ((err = set_swparams(*pHandle, swparams, values)) < 0) {
-      printf("Setting of swparams failed: %s\n", snd_strerror(err));
-      exit(EXIT_FAILURE);
+    printf("Setting of swparams failed: %s\n", snd_strerror(err));
+    exit(EXIT_FAILURE);
   }
+  return 0;
 }
 
 void pcm_close(snd_pcm_t *handle, int exitStatus) {
@@ -243,7 +246,7 @@ int pcm_write_buffer(snd_pcm_t *handle, uint8_t *ptr, int cptr) {
       continue;
 
     if (err < 0) {
-      if (err = -EPIPE)
+      if (err == -EPIPE)
         fprintf(stderr, "Underrun: ");
       fprintf(stderr, "Write error: %d,%s\n", err, snd_strerror(err));
       if (xrun_recovery(handle, err) < 0) {

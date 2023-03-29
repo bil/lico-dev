@@ -1,16 +1,25 @@
 from distutils.core import Extension, setup
+import glob
+
 from Cython.Build import cythonize
 
-# TODO dynamically add extra source files in driver folder
+driver_names = [ "{{ "\", \"".join(driver_names)}}" ]
 
-sink_extensions = [
-    Extension("sink_drivers.sink_driver", ["sink_drivers/sink_driver.pyx"]),
-{%- for name in driver_names  %}
+# TODO dynamically add extra source files in driver folder
+driver_files = []
+for name in driver_names:
+    files = [f"sink_drivers/{name}/{name}.pyx", "utilityFunctions.c"]
+    files.extend(glob.glob(f"sink_drivers/{name}/*.c"))
+    driver_files.append(files)
+
+sink_driver_extension = [
+    Extension("sink_drivers.sink_driver", ["sink_drivers/sink_driver.pyx"])
+]
+
+sink_extensions = sink_driver_extension + [
     Extension(
-        "sink_drivers.{{ name }}.{{ name }}",
-        ["sink_drivers/{{ name }}/{{ name }}.pyx", "sink_drivers/{{ name }}/sqlHelpers.c", "sink_drivers/{{ name }}/sqlite3async.c"],
-    ),
-{%- endfor %}
+        f"sink_drivers.{name}.{name}", files
+    ) for name, files in zip(driver_names, driver_files)
 ]
 
 setup(

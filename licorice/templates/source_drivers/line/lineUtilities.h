@@ -13,12 +13,12 @@ typedef struct {
   snd_pcm_access_t access;
   snd_pcm_format_t format;
   unsigned int channels;
-  int rate;
+  unsigned int rate;
   unsigned int buffer_time;
   unsigned int period_time;
-  int periods;
-  snd_pcm_sframes_t buffer_size;
-  snd_pcm_sframes_t period_size;
+  unsigned int periods;
+  snd_pcm_uframes_t buffer_size;
+  snd_pcm_uframes_t period_size;
 } pcm_values_t;
 
 int pcm_init_capture(
