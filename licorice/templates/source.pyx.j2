@@ -4,14 +4,12 @@
 # cimport C libraries
 cimport cython
 cimport numpy as np
-from libc.stdio cimport fprintf, printf, snprintf, stderr, stdout, fflush
+from libc.stdio cimport printf, snprintf, stderr, stdout, fflush
 from libc.stdlib cimport exit, malloc, free, calloc, EXIT_SUCCESS, EXIT_FAILURE
 from libc.stdint cimport int8_t, uint8_t, int16_t, uint16_t, int32_t, uint32_t, int64_t, uint64_t
 from libc.signal cimport SIGINT, SIGUSR1, SIGBUS, SIGSEGV, SIGQUIT, SIGUSR2
-from libc.string cimport memset, memcpy, strerror
-from libc.errno cimport errno, EINTR, EPIPE, EAGAIN
 from posix.signal cimport kill, sigaction, sigaction_t, sigset_t, sigemptyset, sigaddset, sigfillset
-from posix.unistd cimport close, getpid, getppid, pause
+from posix.unistd cimport getpid, getppid, pause
 from posix.mman cimport munmap, PROT_READ, PROT_WRITE, MAP_SHARED, mlockall, MCL_CURRENT, MCL_FUTURE, munlockall
 from posix.types cimport pid_t
 from posix.fcntl cimport O_RDWR, open, fcntl, O_CREAT, O_RDONLY, F_SETFL, O_NONBLOCK
@@ -38,9 +36,6 @@ import source_drivers.{{ driver_import }} as {{ driver_name }}
 {%- endif %}
 
 # headers for all sources
-cdef extern from "<sys/socket.h>":
-  ctypedef uint32_t socklen_t
-
 cdef extern from "semaphore.h" nogil:
   cdef union sem_union:
     pass
@@ -360,7 +355,7 @@ while(True):
   {%- endif %}
 
   # TODO add inBufLen?
-  driver.run(&inBuf, &inBufLen, &out_sigs, &out_sig_lens)
+  driver.run(&inBuf, &inBufLen, out_sigs, out_sig_lens)
 
   {%- if has_parser %}
     {%- for sig, args in out_signals.items() %}

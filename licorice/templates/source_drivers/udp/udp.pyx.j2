@@ -1,58 +1,3 @@
-# __DRIVER_CODE__ imports
-
-from time import sleep
-from posix.types cimport suseconds_t, time_t
-
-cdef extern from "<netdb.h>":
-    const char *gai_strerror(int ecode);
-    struct addrinfo:
-        int ai_family
-        int ai_socktype
-        int ai_flags
-        int ai_protocol
-        char *ai_canonname
-        sockaddr *ai_addr
-        addrinfo *ai_next
-        int ai_addrlen
-    int getaddrinfo (const char *node, const char *service, const addrinfo *hints, addrinfo **res)
-    void freeaddrinfo (addrinfo *ai)
-    enum: AI_PASSIVE
-
-cdef extern from "<arpa/inet.h>":
-    ctypedef uint32_t in_addr_t
-    uint16_t htons(uint16_t hostshort)
-    in_addr_t inet_addr(const char *cp);
-
-cdef extern from "<netinet/in.h>":
-    enum: IPPROTO_UDP
-    ctypedef unsigned short sa_family_t
-
-cdef extern from "<sys/socket.h>":
-    enum: AF_INET
-    enum: SOCK_DGRAM
-    enum: MSG_DONTWAIT
-    enum: SOL_SOCKET
-    enum: SO_RCVTIMEO
-    struct sockaddr:
-        unsigned char sa_len
-        unsigned char sa_family
-        char  sa_data[14]
-    ssize_t recvfrom(int, void *restrict, size_t, int, sockaddr *restrict, socklen_t *restrict)
-    int bind(int, const sockaddr *, socklen_t)
-    int socket(int domain, int type, int protocol)
-    int setsockopt(int socket, int level, int option_name,
-             const void *option_value, socklen_t option_len);
-
-    cdef struct sockaddr_storage:
-            unsigned char sa_len
-            sa_family_t sa_family
-
-cdef extern from "<sys/time.h>":
-    cdef struct timeval:
-        time_t tv_sec
-        suseconds_t tv_usec
-
-
 cdef class UdpSourceDriver(source_driver.SourceDriver):
     def __cinit__(self):
         self.src_addr_len = sizeof(sockaddr_storage)
@@ -74,10 +19,10 @@ cdef class UdpSourceDriver(source_driver.SourceDriver):
             &self.result
         )
         if (self.s != 0):
-            fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(s))
+            fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(self.s))
             die("getaddrinfo")
 
-        self.rp = result
+        self.rp = self.result
         while (self.rp != NULL):
             self.sfd = socket(self.rp.ai_family, self.rp.ai_socktype, self.rp.ai_protocol)
             if (self.sfd == -1):
@@ -101,7 +46,7 @@ cdef class UdpSourceDriver(source_driver.SourceDriver):
 
         self.sleep_duration = {{config["config"]["tick_len"]}} / (2. * 1e6)
 
-    cdef void run(self, uint8_t **inBuf, size_t *inBufLen, object *out_sigs, object *out_sig_lens) except *
+    cdef void run(self, uint8_t **inBuf, size_t *inBufLen, object out_sigs, object out_sig_lens) except *:
 
         if (recvfrom(self.sfd, <void *>inBuf[0], self.packetSize, 0, <sockaddr *> &self.src_addr, &self.src_addr_len) == -1):
             if (errno != EINTR):
@@ -114,6 +59,6 @@ cdef class UdpSourceDriver(source_driver.SourceDriver):
 # {%- endif %}
 
 
-    cdef void exit_handler(self, int exitStatus) except *
+    cdef void exit_handler(self, int exitStatus) except *:
         if (self.sfd):
             close(self.sfd)

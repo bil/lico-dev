@@ -7,17 +7,10 @@ LDFLAGS = -levent -pthread -lsqlite3 {{extra_link_flags}}
 LDTESTFLAGS = -lsqlite3 -pthread
 CYLDFLAGS = {{py_lib}} -lsqlite3 {{py_link_flags}} {{extra_link_flags}} # -lpthread -lm -lutil -ldl should be included in py_link_flags
 
-all: timer {% if has_drivers %}drivers {% endif %}{% for sd in source_driver_names %}{{sd}} {% endfor %}{% for so in source_names %}{{so}} {% endfor %}{% for ar in async_reader_names %}{{ar}} {% endfor %}{% for si in sink_names %}{{si}} {% endfor %}{% for aw in async_writer_names %}{{aw}} {% endfor %}{% for c in module_names %}{{c}} {% endfor %} #drivers
+all: timer {% if has_drivers %}drivers {% endif %}{% for so in source_names %}{{so}} {% endfor %}{% for ar in async_reader_names %}{{ar}} {% endfor %}{% for si in sink_names %}{{si}} {% endfor %}{% for aw in async_writer_names %}{{aw}} {% endfor %}{% for c in module_names %}{{c}} {% endfor %} #drivers
 
 timer: timer.c utilityFunctions.c {% if darwin %}darwin_compat/clock_nanosleep.c{% endif %}
 	$(CC) $(CFLAGS) timer.c utilityFunctions.c {% if darwin %}darwin_compat/clock_nanosleep.c{% endif %} -o timer $(LDFLAGS)
-
-{% for source_driver in source_driver_names -%}
-{{source_driver}}: {{source_driver}}.pyx sourceUtils.c utilityFunctions.
-	cython --embed -3 -o {{source_driver}}.c {{source_driver}}.pyx
-	$(CC) $(CYFLAGS) -Wno-cpp {{source_driver}}.c sourceUtils.c utilityFunctions.c -o {{source_driver}} $(CYLDFLAGS)
-
-{% endfor -%}
 
 {% for source in source_names -%}
 {% if source_types[loop.index0] == 'python' -%}

@@ -214,7 +214,7 @@ void pcm_close(snd_pcm_t *handle, int exitStatus) {
   else {
     err = snd_pcm_drain(handle);
   }
-  if (err < 0) printf("snd_pcm_drain failed: %s\n", snd_strerror(err));    
+  if (err < 0) printf("snd_pcm_drain failed: %s\n", snd_strerror(err));
   snd_pcm_close(handle);
 }
 

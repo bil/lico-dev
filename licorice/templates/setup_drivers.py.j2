@@ -3,42 +3,35 @@ import glob
 
 from Cython.Build import cythonize
 
-driver_names = [ "{{ "\", \"".join(driver_names)}}" ]
 
-# TODO dynamically add extra source files in driver folder
-driver_files = []
-for name in driver_names:
-    files = [f"sink_drivers/{name}/{name}.pyx", "utilityFunctions.c"]
-    files.extend(glob.glob(f"sink_drivers/{name}/*.c"))
-    driver_files.append(files)
+def setup_drivers(package_name, module_name, driver_names):
 
-sink_driver_extension = [
-    Extension("sink_drivers.sink_driver", ["sink_drivers/sink_driver.pyx"])
-]
+    # dynamically add extra source files in driver folder
+    driver_files = []
+    for name in driver_names:
+        files = [f"{package_name}/{name}/{name}.pyx", "utilityFunctions.c"]
+        files.extend(glob.glob(f"{package_name}/{name}/*.c"))
+        driver_files.append(files)
 
-sink_extensions = sink_driver_extension + [
-    Extension(
-        f"sink_drivers.{name}.{name}", files
-    ) for name, files in zip(driver_names, driver_files)
-]
+    driver_extension = [
+        Extension(f"{package_name}.{module_name}", [f"{package_name}/{module_name}.pyx"])
+    ]
 
-setup(
-    name="sink_drivers",
-    ext_modules=cythonize(sink_extensions, language_level=3),
-)
+    extensions = driver_extension + [
+        Extension(
+            f"{package_name}.{name}.{name}", files
+        ) for name, files in zip(driver_names, driver_files)
+    ]
+
+    setup(
+        name=package_name,
+        ext_modules=cythonize(extensions, language_level=3),
+    )
 
 
-source_extensions = [
-    Extension("source_drivers.source_driver", ["source_drivers/source_driver.pyx"]),
-{%- for name in driver_names  %}
-    Extension(
-        "source_drivers.{{ name }}}.{{ name }}}",
-        ["source_drivers/{{ name }}}/{{ name }}}.pyx"],
-    ),
-{%- endfor %}
-]
+source_driver_names = [ "{{ "\", \"".join(source_driver_names)}}" ]
+setup_drivers("source_drivers", "source_driver", source_driver_names)
 
-setup(
-    name="source_drivers",
-    ext_modules=cythonize(sink_extensions, language_level=3),
-)
+sink_driver_names = [ "{{ "\", \"".join(sink_driver_names)}}" ]
+setup_drivers("sink_drivers", "sink_driver", sink_driver_names)
+
