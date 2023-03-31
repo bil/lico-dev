@@ -63,7 +63,6 @@ cimport cython
 
 cdef extern from "constants.h":
   enum: NUM_PAGES_IN_GB
-  enum: MAX_PATH_LEN
   enum: NUM_CHILDREN
   enum: BYTES_IN_GB
   cdef const char *SMEM0_PATHNAME
@@ -81,7 +80,6 @@ cdef extern from "constants.h":
 
 cdef pid_t pid
 cdef pid_t ppid
-cdef char pathName[MAX_PATH_LEN]
 cdef public sigset_t exitMask
 
 # shared memory vars

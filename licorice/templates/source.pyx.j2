@@ -64,7 +64,6 @@ cdef extern from "utilityFunctions.h":
   void make_realtime()
 
 cdef extern from "constants.h":
-  enum: MAX_PATH_LEN
   enum: PAGESIZE
   const char *SMEM0_PATHNAME
   enum: NUM_SEM_SIGS
@@ -98,8 +97,6 @@ cdef extern from "<pthread.h>" nogil:
 # cdef variables
 cdef pid_t pid, ppid
 cdef sigset_t exitMask
-cdef char pathName[MAX_PATH_LEN]
-cdef char *outbuf
 cdef int parse_idx
 cdef int semVal;
 
@@ -143,6 +140,7 @@ cdef uint32_t packetSize = {{in_signal["schema"]["data"]["size"]}} * sizeof({{in
 cdef {{in_dtype}} *inBufStrt
 cdef {{in_dtype}} *inBufEnd
 cdef {{in_dtype}} *inBuf
+cdef size_t inBufLen
 {%- endif %}
 
 # python variables
@@ -317,6 +315,7 @@ inBuf = inBufStrt
 inBufEnd = inBufStrt + {{out_signal_name}}BufVars[7]
 # inBufEnd = inBufStrt + packetSize
   {%- endif %}
+inBufLen = inBufEnd - inBufStrt
 {%- endif %}
 
 {% if default_params -%}
